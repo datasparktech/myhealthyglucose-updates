@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyHealthyGlucose — Updates</title>
+<style>
+  :root {
+    --primary: #0E7C86;
+    --primary-dark: #0A5B62;
+    --accent: #D9822B;
+    --ink: #142A2E;
+    --muted: #6C807F;
+    --bg: #F1F7F7;
+    --card: #FFFFFF;
+    --border: #DEEAE9;
+    --tint: #E7F4F3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--bg); color: var(--ink); line-height: 1.6;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 80px; }
+  header {
+    background: linear-gradient(160deg, var(--primary), var(--primary-dark));
+    color: white; padding: 56px 20px 64px; text-align: center;
+  }
+  .logo {
+    width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 20px;
+    background: white; display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 36px; height: 36px; }
+  header h1 { margin: 0 0 8px; font-size: 30px; }
+  header p { margin: 0; opacity: 0.9; font-size: 16px; max-width: 480px; margin: 0 auto; }
+
+  .section { margin-top: 40px; }
+  .section h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin-bottom: 16px; font-weight: 700;
+  }
+
+  .coming-soon {
+    background: var(--tint); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin-top: -34px; position: relative; z-index: 2;
+    box-shadow: 0 8px 24px rgba(20,42,46,0.08);
+  }
+  .coming-soon h2 { color: var(--primary-dark); }
+  .theme-list { list-style: none; margin: 0; padding: 0; }
+  .theme-list li {
+    display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-size: 15px;
+  }
+  .theme-list li::before {
+    content: "→"; color: var(--accent); font-weight: 700; flex-shrink: 0;
+  }
+
+  .release {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin-bottom: 16px;
+  }
+  .release-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .release-head h3 { margin: 0; font-size: 18px; }
+  .release-date { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 3px 10px; border-radius: 999px; margin-left: 8px;
+    background: var(--tint); color: var(--primary-dark); vertical-align: middle;
+  }
+  .release ul { margin: 14px 0 0; padding-left: 20px; }
+  .release li { margin-bottom: 6px; font-size: 15px; }
+
+  .feedback {
+    text-align: center; padding: 32px 20px; margin-top: 48px;
+    border-top: 1px solid var(--border);
+  }
+  .feedback p { color: var(--muted); margin-bottom: 14px; }
+  .feedback a {
+    display: inline-block; background: var(--primary); color: white; text-decoration: none;
+    padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 14px;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 20px; }
+  footer a { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 6 C50 6 22 40 22 62 A28 28 0 0 0 78 62 C78 40 50 6 50 6 Z" fill="#0E7C86"/>
+      <polygon points="50,42 63,49 63,63 50,70 37,63 37,49" fill="#D9822B" />
+      <polygon points="50,48 58,52.5 58,59.5 50,64 42,59.5 42,52.5" fill="white" />
+    </svg>
+  </div>
+  <h1>MyHealthyGlucose Updates</h1>
+  <p>What's new, and a look at what we're building next.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="coming-soon">
+    <h2>Coming Soon</h2>
+    <ul class="theme-list">
+      <li>Medication reminders that reach you even when the app is closed</li>
+      <li>Automatic activity tracking, so your daily goals reflect real steps</li>
+      <li>A smoother first-time setup for new users</li>
+      <li>Personalized insights from your glucose and food patterns</li>
+      <li>Support for sharing your progress with a caregiver or family member</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Release Notes</h2>
+
+    <div class="release">
+      <div class="release-head">
+        <h3>Pilot Launch <span class="badge">Current</span></h3>
+        <span class="release-date">July 2026</span>
+      </div>
+      <p>MyHealthyGlucose is live! Everything you need to manage diabetes and healthy eating in one place:</p>
+      <ul>
+        <li>Blood glucose and HbA1c logging with trend charts</li>
+        <li>Food diary with 500+ Indian regional dishes, plus barcode scanning for packaged foods</li>
+        <li>Medication tracking with reminders and adherence streaks</li>
+        <li>Daily goals for glucose, food, hydration, and activity</li>
+        <li>Secure sign-in with Google and automatic cloud sync across devices</li>
+        <li>One-tap PDF and CSV reports to share with your doctor</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-head">
+        <h3>Behind the Scenes</h3>
+        <span class="release-date">July 2026</span>
+      </div>
+      <p>Ongoing improvements to reliability and performance as we learn from real usage during the pilot — sign-in stability, sync speed, and better error messages when something needs your attention.</p>
+    </div>
+  </div>
+
+  <div class="feedback">
+    <p>Have an idea for a feature, or run into something that didn't work quite right?</p>
+    <a href="mailto:connect@datasparktech.com?subject=MyHealthyGlucose%20Feedback">Send us feedback</a>
+  </div>
+
+</div>
+
+<footer>
+  MyHealthyGlucose by DataSpark Tech LLC &middot; <a href="https://datasparktech.com/myhealthyglucose/privacy/">Privacy Policy</a>
+</footer>
+
+</body>
+</html>
