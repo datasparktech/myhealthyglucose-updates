@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Connecting Dexcom — MyHealthyGlucose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --teal:#0F9384; --teal-dark:#0A6B60; --bg:#F3F1EC; --card:#FFFFFF; --ink:#1B2A27; --muted:#6E7B77; --border:rgba(27,42,39,0.1); --mint:#D8EFE6; --danger:#C0463A; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:24px; padding:40px 32px; max-width:420px; width:100%; text-align:center; box-shadow:0 24px 60px rgba(20,42,46,0.12); }
+  .mark { width:64px; height:64px; margin:0 auto 20px; border-radius:19px; background:linear-gradient(150deg,var(--teal),var(--teal-dark)); display:flex; align-items:center; justify-content:center; }
+  .mark svg { width:38px; height:38px; }
+  h1 { font-family:'Space Grotesk',sans-serif; font-size:22px; margin:0 0 10px; letter-spacing:-0.01em; }
+  p { font-size:15px; color:var(--muted); margin:0 0 22px; line-height:1.6; }
+  .spinner { width:34px; height:34px; margin:0 auto 20px; border:4px solid var(--mint); border-top-color:var(--teal); border-radius:50%; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .btn { display:inline-block; background:var(--teal); color:#fff; text-decoration:none; padding:14px 30px; border-radius:999px; font-weight:600; font-size:15px; box-shadow:0 10px 24px rgba(15,147,132,0.28); }
+  .muted { font-size:12.5px; color:var(--muted); margin-top:18px; }
+  .err .mark { background:var(--danger); }
+  #err-detail { display:none; font-size:12px; color:var(--danger); margin-top:8px; word-break:break-word; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="mark">
+      <svg viewBox="0 0 100 100"><path d="M50 8 C50 8 24 40 24 61 A26 26 0 0 0 76 61 C76 40 50 8 50 8 Z" fill="#FFFFFF" opacity="0.25"/><path d="M50 20 C50 20 34 42 34 57 A16 16 0 0 0 66 57 C66 42 50 20 50 20 Z" fill="#FFFFFF"/><polygon points="50,44 60,49.5 60,60.5 50,66 40,60.5 40,49.5" fill="#E8853D"/></svg>
+    </div>
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Connecting your Dexcom…</h1>
+    <p id="msg">Taking you back to MyHealthyGlucose. This should only take a moment.</p>
+    <a class="btn" id="return-btn" style="display:none">Return to the app</a>
+    <div class="muted" id="foot">You can close this tab once the app reopens.</div>
+    <div id="err-detail"></div>
+  </div>
+
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var code = params.get("code");
+    var state = params.get("state") || "";
+    var error = params.get("error");
+
+    var APP_SCHEME = "com.glucosecompass.app://dexcom";
+
+    function show(title, msg, isError) {
+      document.getElementById("title").textContent = title;
+      document.getElementById("msg").textContent = msg;
+      document.getElementById("spinner").style.display = "none";
+      if (isError) document.getElementById("card").classList.add("err");
+    }
+
+    if (error) {
+      show("Connection cancelled", "You didn't finish connecting Dexcom. You can try again from the app any time.", true);
+      return;
+    }
+    if (!code) {
+      show("Something went wrong", "We didn't receive an authorization code from Dexcom. Please try connecting again from the app.", true);
+      return;
+    }
+
+    // Hand the code back into the app via its custom scheme. singleTask + the app's
+    // appUrlOpen listener picks it up, calls the Cloud Function, and finishes the connection.
+    var deepLink = APP_SCHEME + "?code=" + encodeURIComponent(code) + "&state=" + encodeURIComponent(state);
+    var btn = document.getElementById("return-btn");
+    btn.href = deepLink;
+
+    // Try to bounce automatically; if the OS blocks the auto-redirect, the button is the fallback.
+    setTimeout(function () { window.location.href = deepLink; }, 350);
+    setTimeout(function () {
+      document.getElementById("spinner").style.display = "none";
+      btn.style.display = "inline-block";
+      document.getElementById("title").textContent = "Almost there";
+      document.getElementById("msg").textContent = "Tap the button below to return to MyHealthyGlucose and finish connecting.";
+    }, 2500);
+  })();
+</script>
+</body>
+</html>
