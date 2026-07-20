@@ -38,7 +38,7 @@
     <li><strong>Delete everything (full account)</strong> — permanently removes all your data <em>and</em> your sign-in. This can't be undone.</li>
   </ul>
   <div style="background:#EAF6F1; border:1px solid #BFE4D6; border-radius:8px; padding:11px 13px; font-size:13px; color:#1f5c4a; margin-bottom:16px;">
-    <strong>Fastest option:</strong> you can delete your account and data instantly from inside the app — open MyHealthyGlucose → tap your profile (top-left) → <strong>Your data</strong> → <strong>Delete my account and all data</strong>. Use the form below if you'd rather we process it for you, or no longer have the app installed.
+    <strong>Fastest option:</strong> you can delete your account and data instantly from inside the app — open MyHealthyGlucose → tap your profile (top-left) → <strong>Your data</strong> → <strong>Delete my account and all data</strong>. Use the form below if you'd rather we process it for you, or no longer have the app installed — or simply email <a href="mailto:connect@datasparktech.com?subject=Account%20Deletion%20Request" style="color:#0b6b58;font-weight:600;">connect@datasparktech.com</a> with your account email.
   </div>
 
   <form id="delete-form">
@@ -131,7 +131,7 @@
       resultEl.style.display = "block";
       document.getElementById("delete-form").style.display = "none";
     } catch (err) {
-      errorEl.textContent = (err && err.message) || "Something went wrong submitting your request. Please try again.";
+      errorEl.innerHTML = "We couldn't submit your request automatically right now. Please email <a href=\"mailto:connect@datasparktech.com?subject=Account%20Deletion%20Request\">connect@datasparktech.com</a> with your account email and what you'd like deleted, and we'll process it within 30 days.";
       errorEl.style.display = "block";
       btn.disabled = false;
       btn.textContent = "Submit request";
