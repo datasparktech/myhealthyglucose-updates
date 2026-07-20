@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyHealthyGlucose — Admin: Deletion Tickets</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --teal: #0EA99A; --teal-dark: #0A5B62; --bg: #F6FBFA; --text: #1e2f32; --border: #DCEEEC; --danger: #D9482B; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 32px 16px; }
+  .card { max-width: 640px; margin: 0 auto; background: white; border-radius: 14px; padding: 32px; box-shadow: 0 2px 18px rgba(10,91,98,0.08); }
+  h1 { color: var(--teal-dark); font-size: 20px; margin: 0 0 4px 0; }
+  p.lead { color: #5a6d6d; margin: 0 0 20px 0; font-size: 13.5px; }
+  label { display: block; font-weight: 600; font-size: 13px; color: var(--teal-dark); margin: 14px 0 6px 0; }
+  input[type="email"], input[type="password"], input[type="text"] { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; }
+  button { padding: 11px 18px; background: var(--teal); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  button.danger { background: var(--danger); }
+  button.secondary { background: white; color: var(--teal-dark); border: 1.5px solid var(--border); }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .row { display: flex; gap: 10px; align-items: flex-end; margin-top: 12px; }
+  .row input { flex: 1; }
+  .error { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; background: #FEECEC; border-left: 4px solid var(--danger); display: none; }
+  .success { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; background: #E7F7F3; border-left: 4px solid var(--teal); display: none; }
+  #logged-out, #logged-in { display: none; }
+  .ticket-box { margin-top: 20px; border: 1.5px solid var(--border); border-radius: 10px; padding: 18px; display: none; }
+  .ticket-box .meta { font-size: 13px; color: #4d6060; line-height: 1.7; }
+  .ticket-box .meta strong { color: var(--teal-dark); }
+  .preview-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .preview-item:last-child { border-bottom: none; }
+  .preview-item .txt { font-size: 13px; }
+  .preview-item .txt .l { font-weight: 600; }
+  .preview-item .txt .d { color: #7a8d8d; font-size: 11.5px; }
+  .full-warn { margin-top: 12px; padding: 10px 12px; background: #FFF9EE; border-left: 4px solid #E0A03A; border-radius: 6px; font-size: 12.5px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; }
+  .topbar button { padding: 6px 12px; font-size: 12.5px; }
+  .status { font-size: 12px; color: #7a8d8d; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div id="logged-out">
+    <h1>Admin sign-in</h1>
+    <p class="lead">Access restricted to authorized MyHealthyGlucose administrators.</p>
+    <label for="login-email">Email</label>
+    <input type="email" id="login-email">
+    <label for="login-password">Password</label>
+    <input type="password" id="login-password">
+    <button id="login-btn" style="margin-top:16px;">Sign in</button>
+    <div class="error" id="login-error"></div>
+  </div>
+
+  <div id="logged-in">
+    <div class="topbar">
+      <h1>Deletion Ticket Lookup</h1>
+      <button class="secondary" id="signout-btn">Sign out</button>
+    </div>
+    <p class="lead" id="whoami"></p>
+
+    <label for="ticket-input">Ticket number</label>
+    <div class="row">
+      <input type="text" id="ticket-input" placeholder="MHG-482913">
+      <button id="lookup-btn">Look up</button>
+    </div>
+    <div class="error" id="lookup-error"></div>
+    <div class="success" id="action-success"></div>
+
+    <div class="ticket-box" id="ticket-box">
+      <div class="meta" id="ticket-meta"></div>
+      <div id="not-found-reason"></div>
+
+      <div id="preview-section" style="margin-top:16px;">
+        <label style="margin-top:0;">Data found for this account — select what to delete</label>
+        <div id="preview-list"></div>
+      </div>
+
+      <div class="full-warn">
+        Checking "Delete entire account" below removes everything, including sign-in — it overrides any other selections and cannot be undone.
+      </div>
+      <label style="margin-top:14px;">
+        <input type="checkbox" id="full-account-toggle"> Delete entire account (overrides selections above)
+      </label>
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="danger" id="confirm-delete-btn">Confirm delete</button>
+        <button class="secondary" id="cancel-btn">Cancel</button>
+      </div>
+      <div class="status" id="delete-status"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const functions = firebase.app().functions(window.FUNCTIONS_REGION);
+
+  const loggedOutEl = document.getElementById("logged-out");
+  const loggedInEl = document.getElementById("logged-in");
+
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      loggedOutEl.style.display = "none";
+      loggedInEl.style.display = "block";
+      document.getElementById("whoami").textContent = `Signed in as ${user.email}`;
+    } else {
+      loggedOutEl.style.display = "block";
+      loggedInEl.style.display = "none";
+    }
+  });
+
+  document.getElementById("login-btn").addEventListener("click", async () => {
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    const errEl = document.getElementById("login-error");
+    errEl.style.display = "none";
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      errEl.textContent = e.message || "Sign-in failed.";
+      errEl.style.display = "block";
+    }
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", () => auth.signOut());
+
+  let currentTicket = null; // { ticketId, categoryOptions, ... }
+
+  document.getElementById("lookup-btn").addEventListener("click", async () => {
+    const lookupErrEl = document.getElementById("lookup-error");
+    const successEl = document.getElementById("action-success");
+    const boxEl = document.getElementById("ticket-box");
+    lookupErrEl.style.display = "none";
+    successEl.style.display = "none";
+    boxEl.style.display = "none";
+
+    const ticketNumber = document.getElementById("ticket-input").value.trim();
+    if (!ticketNumber) return;
+
+    try {
+      const lookup = functions.httpsCallable("lookupDeletionTicket");
+      const res = await lookup({ ticketNumber });
+      renderTicket(res.data);
+    } catch (e) {
+      lookupErrEl.textContent = (e && e.message) || "Ticket not found.";
+      lookupErrEl.style.display = "block";
+    }
+  });
+
+  function renderTicket(data) {
+    currentTicket = data;
+    const boxEl = document.getElementById("ticket-box");
+    const metaEl = document.getElementById("ticket-meta");
+    const notFoundEl = document.getElementById("not-found-reason");
+    const previewSection = document.getElementById("preview-section");
+    const previewListEl = document.getElementById("preview-list");
+
+    metaEl.innerHTML = `
+      <div><strong>Ticket:</strong> ${data.ticket.ticketNumber} (${data.ticket.status})</div>
+      <div><strong>Requester email:</strong> ${data.ticket.requesterEmail}</div>
+      <div><strong>Requested categories:</strong> ${data.ticket.requestedCategories.join(", ")}</div>
+      <div><strong>Reason given:</strong> ${data.ticket.reason || "(none)"}</div>
+      <div><strong>Submitted:</strong> ${data.ticket.createdAt || "—"}</div>
+      ${data.account ? `<div><strong>Account found:</strong> ${data.account.email} (created ${data.account.createdAt})</div>` : ""}
+    `;
+
+    if (data.ticket.status === "resolved") {
+      notFoundEl.innerHTML = `<div class="full-warn">This ticket has already been resolved. No further action needed.</div>`;
+      previewSection.style.display = "none";
+      document.getElementById("confirm-delete-btn").style.display = "none";
+    } else if (data.notFoundReason) {
+      notFoundEl.innerHTML = `<div class="full-warn">${data.notFoundReason}</div>`;
+      previewSection.style.display = "none";
+      document.getElementById("confirm-delete-btn").style.display = "none";
+    } else {
+      notFoundEl.innerHTML = "";
+      previewSection.style.display = "block";
+      document.getElementById("confirm-delete-btn").style.display = "inline-block";
+      previewListEl.innerHTML = "";
+      data.dataPreview.forEach((item) => {
+        const requested = data.ticket.requestedCategories.includes(item.key);
+        const row = document.createElement("label");
+        row.className = "preview-item";
+        row.innerHTML = `
+          <input type="checkbox" class="cat-cb" value="${item.key}" ${requested ? "checked" : ""}>
+          <div class="txt"><div class="l">${item.label}</div><div class="d">${item.detail}</div></div>
+        `;
+        previewListEl.appendChild(row);
+      });
+    }
+
+    document.getElementById("full-account-toggle").checked = false;
+    boxEl.style.display = "block";
+  }
+
+  document.getElementById("cancel-btn").addEventListener("click", () => {
+    document.getElementById("ticket-box").style.display = "none";
+    document.getElementById("ticket-input").value = "";
+    currentTicket = null;
+  });
+
+  document.getElementById("confirm-delete-btn").addEventListener("click", async () => {
+    if (!currentTicket) return;
+    const fullAccount = document.getElementById("full-account-toggle").checked;
+    const selected = fullAccount
+      ? ["fullAccount"]
+      : Array.from(document.querySelectorAll(".cat-cb:checked")).map((cb) => cb.value);
+
+    if (!selected.length) {
+      alert("Select at least one category, or check 'Delete entire account'.");
+      return;
+    }
+    const confirmMsg = fullAccount
+      ? `This will permanently delete the ENTIRE account for ${currentTicket.ticket.requesterEmail}, including sign-in. This cannot be undone. Continue?`
+      : `This will permanently delete these categories for ${currentTicket.ticket.requesterEmail}: ${selected.join(", ")}. This cannot be undone. Continue?`;
+    if (!confirm(confirmMsg)) return;
+
+    const btn = document.getElementById("confirm-delete-btn");
+    const statusEl = document.getElementById("delete-status");
+    btn.disabled = true;
+    statusEl.textContent = "Deleting…";
+    try {
+      const resolve = functions.httpsCallable("resolveDeletionTicket");
+      await resolve({ ticketId: currentTicket.ticket.ticketId, categories: selected });
+      document.getElementById("action-success").textContent = `Ticket ${currentTicket.ticket.ticketNumber} resolved — deleted: ${selected.join(", ")}.`;
+      document.getElementById("action-success").style.display = "block";
+      document.getElementById("ticket-box").style.display = "none";
+      document.getElementById("ticket-input").value = "";
+      currentTicket = null;
+    } catch (e) {
+      statusEl.textContent = (e && e.message) || "Deletion failed.";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
