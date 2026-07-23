@@ -2,12 +2,19 @@ import React, { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea,
 } from "recharts";
-import { Droplet, TrendingUp, Target, Activity, ArrowDown, ArrowUp, Gauge } from "lucide-react";
-import { Card, Segmented, Muted, EmptyState, PageHeader } from "../components/ui.jsx";
+import { Droplet, TrendingUp, Target, Activity, ArrowDown, ArrowUp, Gauge, Plus } from "lucide-react";
+import { Card, Segmented, Muted, EmptyState, PageHeader, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import {
   glucoseStats, glucoseState, STATE_COLOR, dateLabel, timeLabel, fullDateLabel, dayKey, mean, DAY,
 } from "../data/transform.js";
 import { useUnit } from "../lib/units.js";
+import { addGlucose } from "../lib/writes.js";
+
+const CONTEXTS = ["Fasting", "Before Meal", "After Meal", "Bedtime", "Exercise", "Random"];
+function toLocalInput(ts) {
+  const d = new Date(ts - new Date().getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
+}
 
 const RANGES = [
   { value: 7, label: "7 Days" },
@@ -30,13 +37,30 @@ const TILE_ACCENT = [
   "bg-indigo-100 text-indigo-600",
 ];
 
-export default function GlucoseLog({ model }) {
+export default function GlucoseLog({ model, user, reload }) {
   const p = model.patient;
   const u = useUnit();
   const [days, setDays] = useState(14);
   const [filter, setFilter] = useState("all");
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ value: "", context: "Fasting", when: toLocalInput(Date.now()) });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
   const glucose = model.records.glucose;
   const now = Date.now();
+
+  const openAdd = () => { setForm({ value: "", context: "Fasting", when: toLocalInput(Date.now()) }); setErr(""); setShowAdd(true); };
+  const save = async () => {
+    if (!form.value) { setErr("Enter a glucose value."); return; }
+    setSaving(true); setErr("");
+    try {
+      const mgdl = u.isMmol ? Math.round(Number(form.value) * 18.0182) : Math.round(Number(form.value));
+      await addGlucose(user.uid, { value: mgdl, context: form.context, ts: new Date(form.when).getTime() || Date.now() });
+      await reload();
+      setShowAdd(false);
+    } catch (e) { setErr(String(e?.message || e)); }
+    finally { setSaving(false); }
+  };
 
   const inRange = useMemo(() => glucose.filter((g) => now - g.ts <= days * DAY), [glucose, days, now]);
   const stats = useMemo(() => glucoseStats(inRange.map((g) => g.value), p.targetLow, p.targetHigh), [inRange, p]);
@@ -58,8 +82,39 @@ export default function GlucoseLog({ model }) {
     return list.filter((g) => glucoseState(g.value, p.targetLow, p.targetHigh) === filter).slice(0, 60);
   }, [inRange, filter, p]);
 
+  const addModal = (
+    <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add glucose reading">
+      <div className="space-y-3">
+        <Field label={`Glucose (${u.unitLabel})`}>
+          <input type="number" step="any" autoFocus className={fieldCls} value={form.value}
+            onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder={u.isMmol ? "e.g. 6.5" : "e.g. 120"} />
+        </Field>
+        <Field label="Context">
+          <select className={fieldCls} value={form.context} onChange={(e) => setForm({ ...form, context: e.target.value })}>
+            {CONTEXTS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+        <Field label="Date & time">
+          <input type="datetime-local" className={fieldCls} value={form.when} onChange={(e) => setForm({ ...form, when: e.target.value })} />
+        </Field>
+        {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save reading"}</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+
   if (!model.hasGlucose) {
-    return <EmptyState icon={Droplet} title="No glucose readings yet">Log readings in the app and they'll show up here.</EmptyState>;
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Glucose Log" subtitle="No readings yet"
+          action={<Button size="sm" icon={Plus} onClick={openAdd}>Add reading</Button>} />
+        <EmptyState icon={Droplet} title="No glucose readings yet">Add your first reading, or log in the app.</EmptyState>
+        {addModal}
+      </div>
+    );
   }
 
   const gl = u.unitLabel;
@@ -76,7 +131,13 @@ export default function GlucoseLog({ model }) {
   return (
     <div className="space-y-4">
       <PageHeader title="Glucose Log" subtitle={`${stats.count} readings in the last ${days} days`}
-        action={<Segmented value={days} onChange={setDays} options={RANGES} />} />
+        action={
+          <div className="flex items-center gap-2">
+            <Segmented value={days} onChange={setDays} options={RANGES} />
+            <Button size="sm" icon={Plus} onClick={openAdd}>Add</Button>
+          </div>
+        } />
+      {addModal}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {tiles.map((t, i) => (

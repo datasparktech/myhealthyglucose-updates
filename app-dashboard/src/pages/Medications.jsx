@@ -1,9 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Pill, Clock, CheckCircle2, Circle, Flame, CalendarCheck, StickyNote } from "lucide-react";
 import { Card, Muted, EmptyState, PageHeader, Badge } from "../components/ui.jsx";
 import { dayKey, dateLabel, fullDateLabel, DAY, clampArr } from "../data/transform.js";
+import { toggleMedDose } from "../lib/writes.js";
 
-export default function Medications({ model }) {
+export default function Medications({ model, user, reload }) {
+  const [busy, setBusy] = useState(null);
   const meds = clampArr(model.records.meds).filter((m) => m && m.name);
   const medLog = clampArr(model.records.medLog);
   const now = Date.now();
@@ -20,13 +22,21 @@ export default function Medications({ model }) {
       const times = Array.isArray(m.times) && m.times.length ? m.times : [null];
       times.forEach((time) => {
         const taken = medLog.some((l) => l.medId === m.id && l.date === tKey && (time == null || l.time === time));
-        rows.push({ id: `${m.id}-${time}`, name: m.name, dose: m.dosage || "", time: time || "", taken });
+        rows.push({ id: `${m.id}-${time}`, medId: m.id, rawTime: time, name: m.name, dose: m.dosage || "", time: time || "", taken });
       });
     });
     return rows.sort((a, b) => String(a.time).localeCompare(String(b.time)));
   }, [meds, medLog, tKey]);
 
   const takenToday = schedule.filter((s) => s.taken).length;
+
+  const onToggle = async (row) => {
+    if (busy) return;
+    setBusy(row.id);
+    try { await toggleMedDose(user.uid, { medId: row.medId, date: dayKey(), time: row.rawTime }); await reload(); }
+    catch (e) { /* reload surfaces errors */ }
+    finally { setBusy(null); }
+  };
 
   const dayRatio = (k) => {
     if (!scheduledPerDay) return 0;
@@ -91,17 +101,21 @@ export default function Medications({ model }) {
             {schedule.length ? (
               <ul className="space-y-2.5">
                 {schedule.map((s) => (
-                  <li key={s.id} className="flex items-center gap-3 rounded-xl bg-canvas px-3 py-2.5">
-                    {s.taken ? <CheckCircle2 size={20} className="text-brand" /> : <Circle size={20} className="text-line" />}
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-ink">{s.name}</div>
-                      <div className="text-xs text-muted">{s.dose}</div>
-                    </div>
-                    {s.time && <span className="flex items-center gap-1 text-xs font-semibold text-muted"><Clock size={12} />{s.time}</span>}
-                    <Badge tone={s.taken ? "good" : "warn"}>{s.taken ? "Taken" : "Due"}</Badge>
+                  <li key={s.id}>
+                    <button onClick={() => onToggle(s)} disabled={busy === s.id}
+                      className="flex w-full items-center gap-3 rounded-xl bg-canvas px-3 py-2.5 text-left transition hover:bg-brand-faint disabled:opacity-60">
+                      {s.taken ? <CheckCircle2 size={20} className="text-brand" /> : <Circle size={20} className="text-line" />}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-ink">{s.name}</div>
+                        <div className="text-xs text-muted">{s.dose}</div>
+                      </div>
+                      {s.time && <span className="flex items-center gap-1 text-xs font-semibold text-muted"><Clock size={12} />{s.time}</span>}
+                      <Badge tone={s.taken ? "good" : "warn"}>{s.taken ? "Taken" : "Due"}</Badge>
+                    </button>
                   </li>
                 ))}
               </ul>
+              <p className="mt-2 text-center text-[11px] text-muted">Tap a dose to mark it taken or undo.</p>
             ) : <Muted>No doses scheduled today.</Muted>}
           </Card>
 

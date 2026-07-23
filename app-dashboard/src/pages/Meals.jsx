@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { UtensilsCrossed, Flame, Coffee, Sun, Moon, Cookie, Trophy } from "lucide-react";
-import { Card, Muted, EmptyState, PageHeader } from "../components/ui.jsx";
+import { UtensilsCrossed, Flame, Coffee, Sun, Moon, Cookie, Trophy, Plus } from "lucide-react";
+import { Card, Muted, EmptyState, PageHeader, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { dayKey, dateLabel, timeLabel, DAY, clampArr } from "../data/transform.js";
+import { addFood } from "../lib/writes.js";
 
 const MEAL_ORDER = ["Breakfast", "Lunch", "Dinner", "Snack"];
 const MEAL_ICON = { Breakfast: Coffee, Lunch: Sun, Dinner: Moon, Snack: Cookie };
@@ -14,10 +15,44 @@ const MEAL_COLOR = {
   Other: "bg-brand-faint text-brand-dark",
 };
 
-export default function Meals({ model }) {
+export default function Meals({ model, user, reload }) {
   const food = clampArr(model.records.food).filter((f) => f && (f.name || f.carbs != null));
   const targets = model.records.targets || { carbs: 150, calories: 1800 };
   const now = Date.now();
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ name: "", carbs: "", cal: "", meal: "Snack" });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const openAdd = () => { setForm({ name: "", carbs: "", cal: "", meal: "Snack" }); setErr(""); setShowAdd(true); };
+  const save = async () => {
+    if (!form.name) { setErr("Enter a food name."); return; }
+    setSaving(true); setErr("");
+    try { await addFood(user.uid, { name: form.name, carbs: form.carbs, cal: form.cal, meal: form.meal }); await reload(); setShowAdd(false); }
+    catch (e) { setErr(String(e?.message || e)); }
+    finally { setSaving(false); }
+  };
+  const addModal = (
+    <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add food">
+      <div className="space-y-3">
+        <Field label="Food name"><input autoFocus className={fieldCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Oatmeal" /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Carbs (g)"><input type="number" className={fieldCls} value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} placeholder="0" /></Field>
+          <Field label="Calories"><input type="number" className={fieldCls} value={form.cal} onChange={(e) => setForm({ ...form, cal: e.target.value })} placeholder="0" /></Field>
+        </div>
+        <Field label="Meal">
+          <select className={fieldCls} value={form.meal} onChange={(e) => setForm({ ...form, meal: e.target.value })}>
+            {["Breakfast", "Lunch", "Dinner", "Snack"].map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+        {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Add food"}</Button>
+        </div>
+      </div>
+    </Modal>
+  );
 
   const byDay = useMemo(() => {
     const m = {};
@@ -66,7 +101,14 @@ export default function Meals({ model }) {
   }, [food]);
 
   if (!food.length) {
-    return <EmptyState icon={UtensilsCrossed} title="No meals logged yet">Log meals in the app to see your carb and calorie breakdown here.</EmptyState>;
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Meals" subtitle="No meals logged yet"
+          action={<Button size="sm" icon={Plus} onClick={openAdd}>Add food</Button>} />
+        <EmptyState icon={UtensilsCrossed} title="No meals logged yet">Add your first meal, or log in the app.</EmptyState>
+        {addModal}
+      </div>
+    );
   }
 
   const carbPct = Math.min(Math.round((totalCarbs / (targets.carbs || 150)) * 100), 100);
@@ -75,7 +117,9 @@ export default function Meals({ model }) {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Meals" subtitle="Carbs, calories & food history" />
+      <PageHeader title="Meals" subtitle="Carbs, calories & food history"
+        action={<Button size="sm" icon={Plus} onClick={openAdd}>Add food</Button>} />
+      {addModal}
 
       {/* Day picker */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">

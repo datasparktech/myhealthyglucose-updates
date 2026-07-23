@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ResponsiveContainer, AreaChart, Area } from "recharts";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, X } from "lucide-react";
 
 /* Count-up animated number */
 export function AnimatedNumber({ value, decimals = 0, duration = 700, className = "" }) {
@@ -187,6 +187,37 @@ export function PageHeader({ title, subtitle, action }) {
         {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
       </div>
       {action}
+    </div>
+  );
+}
+
+/* Form primitives */
+export const fieldCls =
+  "w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+
+export function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+      <div className="absolute inset-0 bg-ink/40 animate-fadeIn" onClick={onClose} />
+      <div className="animate-pop relative w-full max-w-md rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-bold text-ink">{title}</h3>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-canvas hover:text-ink">
+            <X size={18} />
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

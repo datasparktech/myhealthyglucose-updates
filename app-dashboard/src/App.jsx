@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   LayoutGrid, LineChart as LineIcon, UtensilsCrossed, Pill, FileText, Settings as SettingsIcon,
-  Bell, Search, LogOut, Crown, ChevronRight, HeartPulse, Loader2, Menu, X,
+  Bell, Search, LogOut, ChevronRight, HeartPulse, Loader2, Menu, X,
   Activity, Stethoscope, Gauge, ChefHat, User,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
@@ -72,18 +72,24 @@ export default function App() {
     finally { setSigningIn(false); }
   };
 
+  const reload = useCallback(async () => {
+    if (!user) return;
+    try { const d = await fetchUserData(user.uid); setRaw(d); }
+    catch (e) { setError(String(e?.message || e)); }
+  }, [user]);
+
   const model = useMemo(() => (user ? buildModel(raw, user) : null), [raw, user]);
 
   if (authState === "checking") return <FullLoader label="Checking your session…" />;
   if (authState === "out") return <LoginScreen onSignIn={handleSignIn} error={error} busy={signingIn} />;
   if (loadingData || raw === undefined) return <FullLoader />;
 
-  return <Shell model={model} user={user} error={error} onSignOut={() => signOut()} />;
+  return <Shell model={model} user={user} error={error} onSignOut={() => signOut()} reload={reload} />;
 }
 
 /* ------------------------------- shell --------------------------------- */
 
-function Shell({ model, user, error, onSignOut }) {
+function Shell({ model, user, error, onSignOut, reload }) {
   const [route, setRoute] = useState("overview");
   const [drawer, setDrawer] = useState(false);
   const u = useUnit();
@@ -158,7 +164,7 @@ function Shell({ model, user, error, onSignOut }) {
 
         {/* Page */}
         <div key={route} className="page-enter mt-6">
-          <PageComp model={model} user={user} onSignOut={onSignOut} />
+          <PageComp model={model} user={user} reload={reload} onSignOut={onSignOut} />
         </div>
 
         <footer className="mt-8 pb-2 text-center text-xs text-muted">
@@ -197,13 +203,7 @@ function Sidebar({ route, onGo, onSignOut, className = "", header }) {
         })}
       </nav>
 
-      <div className="mt-auto space-y-3">
-        <div className="rounded-2xl bg-gradient-to-br from-brand-dark to-brand p-4 text-white">
-          <Crown size={20} className="mb-2" />
-          <div className="text-sm font-bold">Go Premium</div>
-          <p className="mt-0.5 text-xs text-white/80">Unlock AI insights, PDF reports &amp; Dexcom sync.</p>
-          <button className="mt-3 w-full rounded-lg bg-white/95 py-2 text-xs font-bold text-brand-dark transition hover:bg-white active:scale-[0.98]">Upgrade</button>
-        </div>
+      <div className="mt-auto pt-4">
         <button onClick={onSignOut}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-danger/10 hover:text-danger">
           <LogOut size={18} strokeWidth={2.2} /> Sign out

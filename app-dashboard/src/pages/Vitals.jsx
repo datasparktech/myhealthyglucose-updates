@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { HeartPulse, Activity, Droplets, Gauge } from "lucide-react";
-import { Card, Muted, EmptyState, PageHeader, Badge } from "../components/ui.jsx";
+import { HeartPulse, Activity, Droplets, Gauge, Plus } from "lucide-react";
+import { Card, Muted, EmptyState, PageHeader, Badge, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { dateLabel, fullDateLabel, timeLabel, clampArr } from "../data/transform.js";
+import { addBloodPressure, addKetone } from "../lib/writes.js";
 
 const ketoneLevel = (v) => {
   if (v == null) return { label: "—", tone: "neutral" };
@@ -13,14 +14,76 @@ const ketoneLevel = (v) => {
   return { label: "Normal", tone: "good" };
 };
 
-export default function Vitals({ model }) {
+export default function Vitals({ model, user, reload }) {
   const r = model.records;
   const bp = useMemo(() => [...clampArr(r.bloodPressure)].filter((b) => b.ts).sort((a, b) => a.ts - b.ts), [r]);
   const a1c = useMemo(() => [...clampArr(r.hba1c)].filter((h) => h.value != null).sort((a, b) => new Date(a.date) - new Date(b.date)), [r]);
   const ketones = useMemo(() => [...clampArr(r.ketoneLog)].filter((k) => k.ts).sort((a, b) => b.ts - a.ts), [r]);
 
+  const [modal, setModal] = useState(null); // 'bp' | 'ketone' | null
+  const [bpForm, setBpForm] = useState({ sys: "", dia: "", pulse: "" });
+  const [kForm, setKForm] = useState({ value: "" });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const openBp = () => { setBpForm({ sys: "", dia: "", pulse: "" }); setErr(""); setModal("bp"); };
+  const openK = () => { setKForm({ value: "" }); setErr(""); setModal("ketone"); };
+  const saveBp = async () => {
+    if (!bpForm.sys || !bpForm.dia) { setErr("Enter systolic and diastolic."); return; }
+    setSaving(true); setErr("");
+    try { await addBloodPressure(user.uid, { systolic: bpForm.sys, diastolic: bpForm.dia, pulse: bpForm.pulse }); await reload(); setModal(null); }
+    catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
+  const saveK = async () => {
+    if (!kForm.value) { setErr("Enter a ketone value."); return; }
+    setSaving(true); setErr("");
+    try { await addKetone(user.uid, { value: kForm.value }); await reload(); setModal(null); }
+    catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
+
+  const addButtons = (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" icon={Plus} onClick={openBp}>BP</Button>
+      <Button variant="outline" size="sm" icon={Plus} onClick={openK}>Ketone</Button>
+    </div>
+  );
+  const modals = (
+    <>
+      <Modal open={modal === "bp"} onClose={() => setModal(null)} title="Add blood pressure">
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Systolic"><input type="number" autoFocus className={fieldCls} value={bpForm.sys} onChange={(e) => setBpForm({ ...bpForm, sys: e.target.value })} placeholder="120" /></Field>
+            <Field label="Diastolic"><input type="number" className={fieldCls} value={bpForm.dia} onChange={(e) => setBpForm({ ...bpForm, dia: e.target.value })} placeholder="80" /></Field>
+            <Field label="Pulse"><input type="number" className={fieldCls} value={bpForm.pulse} onChange={(e) => setBpForm({ ...bpForm, pulse: e.target.value })} placeholder="—" /></Field>
+          </div>
+          {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setModal(null)}>Cancel</Button>
+            <Button size="sm" onClick={saveBp} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={modal === "ketone"} onClose={() => setModal(null)} title="Add ketone reading">
+        <div className="space-y-3">
+          <Field label="Ketones (mmol/L)"><input type="number" step="any" autoFocus className={fieldCls} value={kForm.value} onChange={(e) => setKForm({ value: e.target.value })} placeholder="e.g. 0.4" /></Field>
+          {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setModal(null)}>Cancel</Button>
+            <Button size="sm" onClick={saveK} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+
   if (!bp.length && !a1c.length && !ketones.length) {
-    return <EmptyState icon={HeartPulse} title="No vitals logged yet">Log blood pressure, ketones, or A1c labs in the app to track them here.</EmptyState>;
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Vitals & Labs" subtitle="No vitals yet" action={addButtons} />
+        <EmptyState icon={HeartPulse} title="No vitals logged yet">Add blood pressure or ketones, or log in the app.</EmptyState>
+        {modals}
+      </div>
+    );
   }
 
   const bpChart = bp.slice(-30).map((b) => ({ label: dateLabel(b.ts), sys: b.systolic, dia: b.diastolic }));
@@ -34,7 +97,8 @@ export default function Vitals({ model }) {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Vitals & Labs" subtitle="Blood pressure, ketones & A1c" />
+      <PageHeader title="Vitals & Labs" subtitle="Blood pressure, ketones & A1c" action={addButtons} />
+      {modals}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MiniStat icon={HeartPulse} accent="bg-rose-100 text-rose-600" label="Blood pressure"
