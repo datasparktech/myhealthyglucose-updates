@@ -5,11 +5,13 @@ import {
 } from "recharts";
 import {
   Droplet, Target, Activity, TrendingUp, UtensilsCrossed, Flame, ClipboardList,
-  CheckCircle2, Circle, Sparkles, AlertTriangle, Info,
+  CheckCircle2, Circle, Sparkles, AlertTriangle, Info, CalendarClock, MapPin,
 } from "lucide-react";
-import { Card, StatCard, TrendChip, Segmented, Muted, EmptyState, AnimatedNumber } from "../components/ui.jsx";
+import { Card, StatCard, TrendChip, Segmented, Muted, EmptyState, AnimatedNumber, Badge } from "../components/ui.jsx";
+import { fullDateLabel } from "../data/transform.js";
+import { useUnit } from "../lib/units.js";
 
-function tooltipFactory(low, high) {
+function tooltipFactory(low, high, unitLabel) {
   return function GlucoseTooltip({ active, payload }) {
     if (!active || !payload?.length) return null;
     const v = payload[0].value;
@@ -17,7 +19,7 @@ function tooltipFactory(low, high) {
     const color = v < low ? "#D9482B" : v > high ? "#E0A03A" : "#0EA99A";
     return (
       <div className="rounded-lg bg-ink px-3 py-2 text-white shadow-lg">
-        <div className="text-lg font-bold leading-none">{v} <span className="text-xs font-normal opacity-70">mg/dL</span></div>
+        <div className="text-lg font-bold leading-none">{v} <span className="text-xs font-normal opacity-70">{unitLabel}</span></div>
         <div className="mt-1 text-xs font-semibold" style={{ color }}>{state}</div>
       </div>
     );
@@ -27,8 +29,10 @@ function tooltipFactory(low, high) {
 export default function Overview({ model }) {
   const p = model.patient;
   const o = model.overview;
+  const u = useUnit();
   const [range, setRange] = useState("today");
-  const Tip = useMemo(() => tooltipFactory(p.targetLow, p.targetHigh), [p]);
+  const lowD = u.conv(p.targetLow), highD = u.conv(p.targetHigh);
+  const Tip = useMemo(() => tooltipFactory(lowD, highD, u.unitLabel), [lowD, highD, u.unitLabel]);
 
   if (!model.hasGlucose) {
     return (
@@ -39,26 +43,24 @@ export default function Overview({ model }) {
     );
   }
 
-  const chartData = range === "today" ? o.glucoseToday : o.glucose14d;
+  const chartData = (range === "today" ? o.glucoseToday : o.glucose14d).map((d) => ({ ...d, v: u.conv(d.v) }));
 
   return (
     <div className="space-y-4">
-      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard id="glc" delay={0} icon={Droplet} label="Current Glucose" value={o.stats.currentGlucose}
-          unit="mg/dL" sparkColor="#0EA99A" spark={o.sparkGlucose} chip={<TrendChip delta={o.stats.currentDelta} invert />} />
+        <StatCard id="glc" delay={0} icon={Droplet} label="Current Glucose" value={u.conv(o.stats.currentGlucose)} decimals={u.decimals}
+          unit={u.unitLabel} sparkColor="#0EA99A" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.currentDelta)} invert />} />
         <StatCard id="tir" delay={60} icon={Target} label="Time in Range" value={o.stats.timeInRange}
-          unit="%" sparkColor="#3FC9BA" spark={o.sparkGlucose} chip={<TrendChip delta={0} unit="%" />} />
+          unit="%" sparkColor="#3FC9BA" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={0} unit="%" />} />
         <StatCard id="a1c" delay={120} icon={Activity} label="Est. A1c (GMI)" value={o.stats.estA1c} decimals={1}
-          unit="%" sparkColor="#0A5B62" spark={o.sparkGlucose} chip={<TrendChip delta={o.stats.a1cDelta} unit="%" invert />} />
-        <StatCard id="avg" delay={180} icon={TrendingUp} label="Avg Glucose (14d)" value={o.stats.avgGlucose}
-          unit="mg/dL" sparkColor="#E0A03A" spark={o.sparkGlucose} chip={<TrendChip delta={o.stats.avgDelta} invert />} />
+          unit="%" sparkColor="#0A5B62" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={o.stats.a1cDelta} unit="%" invert />} />
+        <StatCard id="avg" delay={180} icon={TrendingUp} label="Avg Glucose (14d)" value={u.conv(o.stats.avgGlucose)} decimals={u.decimals}
+          unit={u.unitLabel} sparkColor="#E0A03A" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.avgDelta)} invert />} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* Left */}
         <div className="space-y-4 xl:col-span-2">
-          <Card title="Glucose Trend" subtitle={`Target range ${p.targetLow}–${p.targetHigh} mg/dL`}
+          <Card title="Glucose Trend" subtitle={`Target range ${lowD}–${highD} ${u.unitLabel}`}
             action={<Segmented value={range} onChange={setRange}
               options={[{ value: "today", label: "Recent" }, { value: "14d", label: "14 Days" }]} />}>
             <ResponsiveContainer width="100%" height={260}>
@@ -69,10 +71,10 @@ export default function Overview({ model }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 6" stroke="#DCEEEC" vertical={false} />
-                <ReferenceArea y1={p.targetLow} y2={p.targetHigh} fill="#0EA99A" fillOpacity={0.07} />
+                <ReferenceArea y1={lowD} y2={highD} fill="#0EA99A" fillOpacity={0.07} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false}
                   interval="preserveStartEnd" minTickGap={18} />
-                <YAxis domain={[60, 220]} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={42} />
+                <YAxis domain={u.domain} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={42} />
                 <Tooltip content={<Tip />} />
                 <Line type="monotone" dataKey="v" stroke="url(#glLine)" strokeWidth={3} dot={false}
                   activeDot={{ r: 5, fill: "#0A5B62" }} isAnimationActive />
@@ -80,7 +82,7 @@ export default function Overview({ model }) {
             </ResponsiveContainer>
             <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted">
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-brand/20" /> Target band</span>
-              <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-brand-dark" /> Glucose (mg/dL)</span>
+              <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-brand-dark" /> Glucose ({u.unitLabel})</span>
             </div>
           </Card>
 
@@ -128,7 +130,6 @@ export default function Overview({ model }) {
           </div>
         </div>
 
-        {/* Right */}
         <div className="space-y-4">
           <Card hover>
             <div className="flex items-center gap-4">
@@ -144,7 +145,7 @@ export default function Overview({ model }) {
               {[
                 { k: "In range", v: `${o.stats.timeInRange}%` },
                 { k: "Est. A1c", v: `${o.stats.estA1c}%` },
-                { k: "Avg", v: o.stats.avgGlucose },
+                { k: "Avg", v: u.conv(o.stats.avgGlucose) },
               ].map((s) => (
                 <div key={s.k} className="rounded-xl bg-canvas py-2.5">
                   <div className="text-sm font-extrabold text-brand-dark">{s.v}</div>
@@ -182,6 +183,25 @@ export default function Overview({ model }) {
               </ul>
             </div>
           </Card>
+
+          {o.appointments.length > 0 && (
+            <Card title="Upcoming" subtitle="Appointments & labs" action={<CalendarClock size={16} className="text-brand" />}>
+              <ul className="space-y-3">
+                {o.appointments.map((a) => (
+                  <li key={a.id} className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-brand-faint">
+                      <span className="text-sm font-extrabold leading-none text-brand-dark">{new Date(a.ts).getDate()}</span>
+                      <span className="text-[9px] font-bold uppercase text-brand">{new Date(a.ts).toLocaleDateString([], { month: "short" })}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-ink">{a.title || "Appointment"}</div>
+                      <div className="text-xs text-muted">{[a.doctorName, a.time].filter(Boolean).join(" · ") || "—"}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           <Card title="Today's Targets">
             <div className="space-y-3">

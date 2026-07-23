@@ -2,21 +2,27 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutGrid, LineChart as LineIcon, UtensilsCrossed, Pill, FileText, Settings as SettingsIcon,
   Bell, Search, LogOut, Crown, ChevronRight, HeartPulse, Loader2, Menu, X,
+  Activity, Stethoscope,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
 import { buildModel } from "./data/transform.js";
+import { useUnit } from "./lib/units.js";
 import Overview from "./pages/Overview.jsx";
 import GlucoseLog from "./pages/GlucoseLog.jsx";
+import Patterns from "./pages/Patterns.jsx";
 import Meals from "./pages/Meals.jsx";
 import Medications from "./pages/Medications.jsx";
+import Care from "./pages/Care.jsx";
 import Reports from "./pages/Reports.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 const NAV = [
   { key: "overview", label: "Overview", icon: LayoutGrid, Comp: Overview },
   { key: "glucose", label: "Glucose Log", icon: LineIcon, Comp: GlucoseLog },
+  { key: "patterns", label: "Patterns", icon: Activity, Comp: Patterns },
   { key: "meals", label: "Meals", icon: UtensilsCrossed, Comp: Meals },
   { key: "meds", label: "Medications", icon: Pill, Comp: Medications },
+  { key: "care", label: "Care & Records", icon: Stethoscope, Comp: Care },
   { key: "reports", label: "Reports", icon: FileText, Comp: Reports },
   { key: "settings", label: "Settings", icon: SettingsIcon, Comp: SettingsPage },
 ];
@@ -74,6 +80,7 @@ export default function App() {
 function Shell({ model, user, error, onSignOut }) {
   const [route, setRoute] = useState("overview");
   const [drawer, setDrawer] = useState(false);
+  const u = useUnit();
   const p = model.patient;
   const active = NAV.find((n) => n.key === route) || NAV[0];
   const PageComp = active.Comp;
@@ -117,6 +124,10 @@ function Shell({ model, user, error, onSignOut }) {
               <input placeholder="Search…"
                 className="w-44 rounded-xl border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 xl:w-56" />
             </div>
+            <button onClick={u.toggle} title="Toggle glucose units"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-xs font-bold text-brand-dark transition hover:bg-brand-faint active:scale-95">
+              {u.unitLabel}
+            </button>
             <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-muted transition hover:text-brand-dark">
               <Bell size={18} />
               <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white" />

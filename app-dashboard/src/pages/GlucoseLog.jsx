@@ -7,6 +7,7 @@ import { Card, Segmented, Muted, EmptyState, PageHeader } from "../components/ui
 import {
   glucoseStats, glucoseState, STATE_COLOR, dateLabel, timeLabel, fullDateLabel, dayKey, mean, DAY,
 } from "../data/transform.js";
+import { useUnit } from "../lib/units.js";
 
 const RANGES = [
   { value: 7, label: "7 Days" },
@@ -23,15 +24,13 @@ const FILTERS = [
 
 export default function GlucoseLog({ model }) {
   const p = model.patient;
+  const u = useUnit();
   const [days, setDays] = useState(14);
   const [filter, setFilter] = useState("all");
   const glucose = model.records.glucose;
-
   const now = Date.now();
-  const inRange = useMemo(
-    () => glucose.filter((g) => now - g.ts <= days * DAY),
-    [glucose, days, now]
-  );
+
+  const inRange = useMemo(() => glucose.filter((g) => now - g.ts <= days * DAY), [glucose, days, now]);
   const stats = useMemo(() => glucoseStats(inRange.map((g) => g.value), p.targetLow, p.targetHigh), [inRange, p]);
 
   const chart = useMemo(() => {
@@ -40,10 +39,10 @@ export default function GlucoseLog({ model }) {
     const out = [];
     for (let i = days - 1; i >= 0; i--) {
       const k = dayKey(now - i * DAY);
-      if (byDay[k]) out.push({ label: dateLabel(now - i * DAY), v: Math.round(mean(byDay[k])) });
+      if (byDay[k]) out.push({ label: dateLabel(now - i * DAY), v: u.conv(Math.round(mean(byDay[k]))) });
     }
     return out;
-  }, [inRange, days, now]);
+  }, [inRange, days, now, u]);
 
   const readings = useMemo(() => {
     const list = [...inRange].sort((a, b) => b.ts - a.ts);
@@ -55,13 +54,15 @@ export default function GlucoseLog({ model }) {
     return <EmptyState icon={Droplet} title="No glucose readings yet">Log readings in the app and they'll show up here.</EmptyState>;
   }
 
+  const gl = u.unitLabel;
+  const lowD = u.conv(p.targetLow), highD = u.conv(p.targetHigh);
   const tiles = [
-    { icon: Activity, label: "Average", value: stats.avg, unit: "mg/dL" },
+    { icon: Activity, label: "Average", value: u.conv(stats.avg), unit: gl },
     { icon: Gauge, label: "Est. A1c (GMI)", value: stats.gmi, unit: "%" },
     { icon: Target, label: "Time in Range", value: stats.inPct, unit: "%" },
-    { icon: TrendingUp, label: "Variability (SD)", value: stats.std, unit: "mg/dL" },
-    { icon: ArrowDown, label: "Lowest", value: stats.min, unit: "mg/dL" },
-    { icon: ArrowUp, label: "Highest", value: stats.max, unit: "mg/dL" },
+    { icon: TrendingUp, label: "Variability (SD)", value: u.conv(stats.std), unit: gl },
+    { icon: ArrowDown, label: "Lowest", value: u.conv(stats.min), unit: gl },
+    { icon: ArrowUp, label: "Highest", value: u.conv(stats.max), unit: gl },
   ];
 
   return (
@@ -80,7 +81,7 @@ export default function GlucoseLog({ model }) {
         ))}
       </div>
 
-      <Card title="Daily Average Trend" subtitle={`Target ${p.targetLow}–${p.targetHigh} mg/dL`}>
+      <Card title="Daily Average Trend" subtitle={`Target ${lowD}–${highD} ${gl}`}>
         {chart.length ? (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chart} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
@@ -90,11 +91,11 @@ export default function GlucoseLog({ model }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 6" stroke="#DCEEEC" vertical={false} />
-              <ReferenceArea y1={p.targetLow} y2={p.targetHigh} fill="#0EA99A" fillOpacity={0.07} />
+              <ReferenceArea y1={lowD} y2={highD} fill="#0EA99A" fillOpacity={0.07} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false}
                 interval="preserveStartEnd" minTickGap={22} />
-              <YAxis domain={[60, 220]} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={42} />
-              <Tooltip formatter={(v) => [`${v} mg/dL`, "Avg"]} labelStyle={{ color: "#5A6D6D" }}
+              <YAxis domain={u.domain} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={42} />
+              <Tooltip formatter={(v) => [`${v} ${gl}`, "Avg"]} labelStyle={{ color: "#5A6D6D" }}
                 contentStyle={{ borderRadius: 10, border: "1px solid #DCEEEC", fontSize: 12 }} />
               <Line type="monotone" dataKey="v" stroke="url(#glLine2)" strokeWidth={3} dot={{ r: 2.5, fill: "#0A5B62" }}
                 activeDot={{ r: 5 }} isAnimationActive />
@@ -107,9 +108,9 @@ export default function GlucoseLog({ model }) {
         <Card title="Distribution" subtitle="Share of readings" className="lg:col-span-1">
           <div className="space-y-4 pt-1">
             {[
-              { k: "In range", pct: stats.inPct, color: STATE_COLOR.in, sub: `${p.targetLow}–${p.targetHigh}` },
-              { k: "High", pct: stats.highPct, color: STATE_COLOR.high, sub: `>${p.targetHigh}` },
-              { k: "Low", pct: stats.lowPct, color: STATE_COLOR.low, sub: `<${p.targetLow}` },
+              { k: "In range", pct: stats.inPct, color: STATE_COLOR.in, sub: `${lowD}–${highD}` },
+              { k: "High", pct: stats.highPct, color: STATE_COLOR.high, sub: `>${highD}` },
+              { k: "Low", pct: stats.lowPct, color: STATE_COLOR.low, sub: `<${lowD}` },
             ].map((b) => (
               <div key={b.k}>
                 <div className="mb-1 flex items-center text-sm">
@@ -134,12 +135,10 @@ export default function GlucoseLog({ model }) {
                 return (
                   <li key={g.id || g.ts} className="flex items-center gap-3 py-2.5">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: STATE_COLOR[st] }} />
-                    <span className="w-14 text-lg font-extrabold text-ink">{g.value}</span>
-                    <span className="text-xs text-muted">mg/dL</span>
+                    <span className="w-14 text-lg font-extrabold text-ink">{u.conv(g.value)}</span>
+                    <span className="text-xs text-muted">{gl}</span>
                     <span className="ml-3 truncate text-xs font-medium text-muted">{g.context || "—"}</span>
-                    <span className="ml-auto whitespace-nowrap text-xs text-muted">
-                      {fullDateLabel(g.ts)} · {timeLabel(g.ts)}
-                    </span>
+                    <span className="ml-auto whitespace-nowrap text-xs text-muted">{fullDateLabel(g.ts)} · {timeLabel(g.ts)}</span>
                   </li>
                 );
               })}
