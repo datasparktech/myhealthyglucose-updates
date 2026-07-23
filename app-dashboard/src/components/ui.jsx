@@ -29,7 +29,7 @@ export function AnimatedNumber({ value, decimals = 0, duration = 700, className 
 const VARIANTS = {
   primary: "bg-brand text-white hover:bg-brand-dark shadow-soft",
   dark: "bg-brand-dark text-white hover:opacity-90 shadow-soft",
-  outline: "border border-line bg-white text-ink hover:bg-canvas hover:border-brand/40",
+  outline: "border border-line bg-surface text-ink hover:bg-canvas hover:border-brand/40",
   ghost: "text-muted hover:bg-brand-faint hover:text-brand-dark",
   danger: "bg-danger/10 text-danger hover:bg-danger/20",
 };
@@ -49,7 +49,7 @@ export function Button({ variant = "primary", size = "md", icon: Icon, children,
 export function Card({ title, subtitle, action, children, className = "", hover = false, style }) {
   return (
     <section style={style}
-      className={`rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70 transition-all duration-300
+      className={`rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line/70 transition-all duration-300
         ${hover ? "hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(10,91,98,0.12)]" : ""} ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -112,7 +112,7 @@ export function StatCard({ icon: Icon, label, value, unit, decimals = 0, chip, s
   const a = ACCENTS[accent] || ACCENTS.teal;
   return (
     <div style={{ animationDelay: `${delay}ms` }}
-      className="group animate-fadeUp relative overflow-hidden rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_34px_rgba(10,91,98,0.14)]">
+      className="group animate-fadeUp relative overflow-hidden rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_34px_rgba(10,91,98,0.14)]">
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${a.bar} opacity-80`} />
       <div className="flex items-center justify-between">
         <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${a.bg} ${a.fg} transition-transform duration-300 group-hover:scale-110`}>
@@ -142,7 +142,7 @@ export function Segmented({ options, value, onChange }) {
         return (
           <button key={o.value} onClick={() => onChange(o.value)}
             className={`rounded-md px-3 py-1 text-xs font-bold transition-all duration-200
-            ${on ? "bg-white text-brand-dark shadow-soft" : "text-muted hover:text-brand-dark"}`}>
+            ${on ? "bg-surface text-brand-dark shadow-soft" : "text-muted hover:text-brand-dark"}`}>
             {o.label}
           </button>
         );
@@ -167,7 +167,7 @@ export function Muted({ children, className = "" }) {
 
 export function EmptyState({ icon: Icon, title, children }) {
   return (
-    <div className="animate-fadeUp mt-2 flex flex-col items-center justify-center rounded-2xl bg-white p-12 text-center shadow-card ring-1 ring-line/70">
+    <div className="animate-fadeUp mt-2 flex flex-col items-center justify-center rounded-2xl bg-surface p-12 text-center shadow-card ring-1 ring-line/70">
       {Icon && (
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-faint text-brand-dark">
           <Icon size={30} strokeWidth={2} />
@@ -193,7 +193,7 @@ export function PageHeader({ title, subtitle, action }) {
 
 /* Form primitives */
 export const fieldCls =
-  "w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
 
 export function Field({ label, children }) {
   return (
@@ -208,8 +208,8 @@ export function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div className="absolute inset-0 bg-ink/40 animate-fadeIn" onClick={onClose} />
-      <div className="animate-pop relative w-full max-w-md rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70">
+      <div className="absolute inset-0 bg-black/50 animate-fadeIn" onClick={onClose} />
+      <div className="animate-pop relative w-full max-w-md rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line/70">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-bold text-ink">{title}</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-canvas hover:text-ink">

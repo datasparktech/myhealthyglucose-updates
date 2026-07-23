@@ -206,7 +206,7 @@ function bpStatus(sys, dia) {
 
 function MiniStat({ icon: Icon, label, value, sub, accent = "bg-brand-faint text-brand-dark" }) {
   return (
-    <div className="animate-fadeUp rounded-2xl bg-white p-4 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_26px_rgba(10,91,98,0.12)]">
+    <div className="animate-fadeUp rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_26px_rgba(10,91,98,0.12)]">
       <div className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${accent}`}><Icon size={16} /></div>
       <div className="mt-2 text-2xl font-extrabold text-ink">{value}</div>
       <div className="text-[11px] font-medium text-muted">{label} <span className="opacity-70">· {sub}</span></div>

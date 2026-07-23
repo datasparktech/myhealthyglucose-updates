@@ -47,7 +47,7 @@ export default function Meals({ model, user, reload }) {
             onChange={(e) => { setForm({ ...form, name: e.target.value }); setOpenList(true); }}
             placeholder="Search the food database…" />
           {openList && foodResults.length > 0 && (
-            <div className="mt-1 max-h-44 overflow-auto rounded-xl border border-line bg-white shadow-card">
+            <div className="mt-1 max-h-44 overflow-auto rounded-xl border border-line bg-surface shadow-card">
               {foodResults.map((r) => (
                 <button key={r.name} type="button"
                   onClick={() => { setForm({ ...form, name: r.name, carbs: String(r.carbs), cal: String(r.cal) }); setOpenList(false); }}
@@ -152,10 +152,10 @@ export default function Meals({ model, user, reload }) {
           return (
             <button key={d.key} onClick={() => setSelected(d.key)}
               className={`flex min-w-[62px] flex-col items-center rounded-xl px-3 py-2 text-center transition-all duration-200
-                ${on ? "bg-brand text-white shadow-soft" : "bg-white text-muted ring-1 ring-line/70 hover:bg-brand-faint hover:text-brand-dark"}`}>
+                ${on ? "bg-brand text-white shadow-soft" : "bg-surface text-muted ring-1 ring-line/70 hover:bg-brand-faint hover:text-brand-dark"}`}>
               <span className="text-[10px] font-bold uppercase opacity-80">{new Date(d.ts).toLocaleDateString([], { weekday: "short" })}</span>
               <span className="text-lg font-extrabold leading-tight">{new Date(d.ts).getDate()}</span>
-              <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${d.count ? (on ? "bg-white" : "bg-brand") : "bg-transparent"}`} />
+              <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${d.count ? (on ? "bg-surface" : "bg-brand") : "bg-transparent"}`} />
             </button>
           );
         })}

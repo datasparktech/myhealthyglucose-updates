@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens (space-separated RGB triplets so Tailwind alpha modifiers work). */
+:root {
+  --canvas: 246 251 250;
+  --surface: 255 255 255;
+  --ink: 30 47 50;
+  --muted: 90 109 109;
+  --line: 220 238 236;
+  --brand-faint: 231 247 243;
+  --brand-dark: 10 91 98;
+}
+.dark {
+  --canvas: 13 20 22;
+  --surface: 23 32 34;
+  --ink: 232 240 239;
+  --muted: 150 167 167;
+  --line: 42 56 58;
+  --brand-faint: 12 45 43;
+  --brand-dark: 95 211 196;
+}
+
 html,
 body,
 #root {
@@ -10,7 +30,7 @@ body,
 
 body {
   margin: 0;
-  background: #f6fbfa;
+  background: rgb(var(--canvas));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -1,20 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        // MyHealthyGlucose brand palette
+        // Theme-aware tokens (light/dark via CSS variables in index.css).
         brand: {
           DEFAULT: "#0EA99A",
-          dark: "#0A5B62",
+          dark: "rgb(var(--brand-dark) / <alpha-value>)",
           light: "#3FC9BA",
-          faint: "#E7F7F3",
+          faint: "rgb(var(--brand-faint) / <alpha-value>)",
         },
-        ink: "#1E2F32",
-        muted: "#5A6D6D",
-        line: "#DCEEEC",
-        canvas: "#F6FBFA",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+        canvas: "rgb(var(--canvas) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
         danger: "#D9482B",
         warn: "#E0A03A",
       },

@@ -222,7 +222,7 @@ export default function Reports({ model }) {
               </div>
               <div className="max-h-72 overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-white text-left text-xs text-muted">
+                  <thead className="sticky top-0 bg-surface text-left text-xs text-muted">
                     <tr className="border-b border-line"><th className="py-2 font-semibold">Date & time</th><th className="py-2 font-semibold">Glucose</th><th className="py-2 font-semibold">Context</th></tr>
                   </thead>
                   <tbody>

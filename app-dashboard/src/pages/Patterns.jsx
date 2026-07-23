@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import {
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea,
+  ComposedChart, Area, Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, Legend,
 } from "recharts";
-import { Activity, CalendarDays, Tag, Sparkles, FlaskConical } from "lucide-react";
-import { Card, Muted, EmptyState, PageHeader } from "../components/ui.jsx";
-import { agpProfile, heatmap, distinctContexts, dayKey } from "../data/transform.js";
+import { Activity, CalendarDays, Tag, FlaskConical, UtensilsCrossed } from "lucide-react";
+import { Card, Muted, EmptyState, PageHeader, fieldCls } from "../components/ui.jsx";
+import { agpProfile, heatmap, distinctContexts, dateLabel, clampArr } from "../data/transform.js";
 import { useUnit } from "../lib/units.js";
 
 const shortHour = (h) => { const a = h < 12 ? "a" : "p"; const x = h % 12 === 0 ? 12 : h % 12; return `${x}${a}`; };
@@ -75,7 +75,7 @@ export default function Patterns({ model }) {
             return (
               <button key={c} onClick={() => toggleCtx(c)}
                 className={`rounded-full px-3 py-1 text-xs font-bold transition-all duration-200 active:scale-95
-                  ${on ? "bg-brand text-white shadow-soft" : "bg-white text-muted ring-1 ring-line hover:text-brand-dark"}`}>
+                  ${on ? "bg-brand text-white shadow-soft" : "bg-surface text-muted ring-1 ring-line hover:text-brand-dark"}`}>
                 #{c}
               </button>
             );
@@ -132,7 +132,75 @@ export default function Patterns({ model }) {
 
         <Simulator patient={p} unit={u} glucose={glucose} />
       </div>
+
+      <MealCompare glucose={glucose} food={model.records.food} patient={p} unit={u} />
     </div>
+  );
+}
+
+function MealCompare({ glucose, food, patient, unit }) {
+  const meals = useMemo(
+    () => clampArr(food).filter((f) => f && f.ts && (f.name || f.carbs != null)).sort((a, b) => b.ts - a.ts).slice(0, 40),
+    [food]
+  );
+  const [selA, setSelA] = useState("");
+  const [selB, setSelB] = useState("");
+
+  if (meals.length < 2) {
+    return (
+      <Card title="Meal vs. Spike" subtitle="Compare post-meal glucose" action={<UtensilsCrossed size={16} className="text-brand" />}>
+        <Muted>Log at least two meals with glucose readings around them to compare their curves.</Muted>
+      </Card>
+    );
+  }
+
+  const mealA = meals.find((m) => m.id === selA) || meals[0];
+  const mealB = meals.find((m) => m.id === selB) || meals[1];
+  const WIN = 3 * 3600 * 1000;
+  const curve = (meal) => (meal ? glucose.filter((g) => g.ts >= meal.ts && g.ts <= meal.ts + WIN).sort((a, b) => a.ts - b.ts).map((g) => ({ t: Math.round((g.ts - meal.ts) / 60000), v: g.value })) : []);
+  const ca = curve(mealA), cb = curve(mealB);
+  const map = {};
+  ca.forEach((p) => { (map[p.t] = map[p.t] || { t: p.t }).a = unit.conv(p.v); });
+  cb.forEach((p) => { (map[p.t] = map[p.t] || { t: p.t }).b = unit.conv(p.v); });
+  const data = Object.values(map).sort((x, y) => x.t - y.t);
+  const peak = (c) => (c.length ? Math.max(...c.map((p) => p.v)) : null);
+  const label = (m) => `${m.name} · ${dateLabel(m.ts)}${m.carbs != null ? ` (${Math.round((m.carbs || 0) * (m.qty || 1))}g)` : ""}`;
+
+  return (
+    <Card title="Meal vs. Spike" subtitle="Post-meal glucose, first 3 hours" action={<UtensilsCrossed size={16} className="text-brand" />}>
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-brand-dark">● Meal A</span>
+          <select className={fieldCls} value={mealA.id} onChange={(e) => setSelA(e.target.value)}>
+            {meals.map((m) => <option key={m.id} value={m.id}>{label(m)}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-warn">● Meal B</span>
+          <select className={fieldCls} value={mealB.id} onChange={(e) => setSelB(e.target.value)}>
+            {meals.map((m) => <option key={m.id} value={m.id}>{label(m)}</option>)}
+          </select>
+        </label>
+      </div>
+      {data.length ? (
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={data} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 6" stroke="#DCEEEC" vertical={false} />
+            <ReferenceArea y1={unit.conv(patient.targetLow)} y2={unit.conv(patient.targetHigh)} fill="#0EA99A" fillOpacity={0.06} />
+            <XAxis dataKey="t" type="number" domain={[0, 180]} tickFormatter={(v) => `${v}m`} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} />
+            <YAxis domain={unit.domain} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={42} />
+            <Tooltip formatter={(val, name) => [`${val} ${unit.unitLabel}`, name === "a" ? "Meal A" : "Meal B"]} labelFormatter={(l) => `${l} min after`} contentStyle={{ borderRadius: 10, border: "1px solid #DCEEEC", fontSize: 12 }} />
+            <Legend formatter={(v) => (v === "a" ? "Meal A" : "Meal B")} wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="a" stroke="#0A5B62" strokeWidth={2.5} dot={{ r: 2.5 }} connectNulls />
+            <Line type="monotone" dataKey="b" stroke="#E0A03A" strokeWidth={2.5} dot={{ r: 2.5 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : <Muted>No glucose readings found in the 3 hours after these meals.</Muted>}
+      <div className="mt-2 grid grid-cols-2 gap-2 text-center text-xs">
+        <div className="rounded-xl bg-canvas py-2"><div className="font-extrabold text-brand-dark">{peak(ca) != null ? `${unit.conv(peak(ca))} ${unit.unitLabel}` : "—"}</div><div className="text-muted">Meal A peak</div></div>
+        <div className="rounded-xl bg-canvas py-2"><div className="font-extrabold text-warn">{peak(cb) != null ? `${unit.conv(peak(cb))} ${unit.unitLabel}` : "—"}</div><div className="text-muted">Meal B peak</div></div>
+      </div>
+    </Card>
   );
 }
 

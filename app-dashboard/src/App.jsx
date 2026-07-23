@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   LayoutGrid, LineChart as LineIcon, UtensilsCrossed, Pill, FileText, Settings as SettingsIcon,
   Bell, Search, LogOut, ChevronRight, HeartPulse, Loader2, Menu, X,
-  Activity, Stethoscope, Gauge, ChefHat, User, RefreshCw,
+  Activity, Stethoscope, Gauge, ChefHat, User, RefreshCw, Sun, Moon,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
 import { buildModel } from "./data/transform.js";
@@ -48,6 +48,13 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
+  const [dark, setDark] = useState(() => { try { return localStorage.getItem("mhg-theme") === "dark"; } catch { return false; } });
+
+  useEffect(() => {
+    const el = document.documentElement;
+    if (dark) el.classList.add("dark"); else el.classList.remove("dark");
+    try { localStorage.setItem("mhg-theme", dark ? "dark" : "light"); } catch { /* ignore */ }
+  }, [dark]);
 
   useEffect(() => watchAuth((u) => {
     if (u) { setUser(u); setAuthState("in"); }
@@ -84,12 +91,12 @@ export default function App() {
   if (authState === "out") return <LoginScreen onSignIn={handleSignIn} error={error} busy={signingIn} />;
   if (loadingData || raw === undefined) return <FullLoader />;
 
-  return <Shell model={model} user={user} error={error} onSignOut={() => signOut()} reload={reload} />;
+  return <Shell model={model} user={user} error={error} onSignOut={() => signOut()} reload={reload} dark={dark} setDark={setDark} />;
 }
 
 /* ------------------------------- shell --------------------------------- */
 
-function Shell({ model, user, error, onSignOut, reload }) {
+function Shell({ model, user, error, onSignOut, reload, dark, setDark }) {
   const [route, setRoute] = useState("overview");
   const [drawer, setDrawer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,7 +116,7 @@ function Shell({ model, user, error, onSignOut, reload }) {
       {/* Mobile drawer */}
       {drawer && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-ink/40 animate-fadeIn" onClick={() => setDrawer(false)} />
+          <div className="absolute inset-0 bg-black/50 animate-fadeIn" onClick={() => setDrawer(false)} />
           <div className="absolute left-0 top-0 h-full animate-slideIn">
             <Sidebar route={route} onGo={go} onSignOut={onSignOut} className="flex h-full"
               header={<button onClick={() => setDrawer(false)} className="ml-auto text-muted"><X size={20} /></button>} />
@@ -122,7 +129,7 @@ function Shell({ model, user, error, onSignOut, reload }) {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button onClick={() => setDrawer(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-muted lg:hidden">
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted lg:hidden">
               <Menu size={18} />
             </button>
             <div>
@@ -136,21 +143,25 @@ function Shell({ model, user, error, onSignOut, reload }) {
             <div className="relative hidden sm:block">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input placeholder="Search…"
-                className="w-44 rounded-xl border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 xl:w-56" />
+                className="w-44 rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 xl:w-56" />
             </div>
             <button onClick={doRefresh} title="Refresh data"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-muted transition hover:text-brand-dark">
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
               <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
             </button>
+            <button onClick={() => setDark(!dark)} title="Toggle dark mode"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
+              {dark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
             <button onClick={u.toggle} title="Toggle glucose units"
-              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-xs font-bold text-brand-dark transition hover:bg-brand-faint active:scale-95">
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-brand-dark transition hover:bg-brand-faint active:scale-95">
               {u.unitLabel}
             </button>
-            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-muted transition hover:text-brand-dark">
+            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
               <Bell size={18} />
               <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white" />
             </button>
-            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-3">
+            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3">
               {user?.photoURL
                 ? <img src={user.photoURL} alt="" className="h-8 w-8 rounded-lg object-cover" referrerPolicy="no-referrer" />
                 : <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white">{p.avatarInitials}</div>}
@@ -183,7 +194,7 @@ function Shell({ model, user, error, onSignOut, reload }) {
 
 function Sidebar({ route, onGo, onSignOut, className = "", header }) {
   return (
-    <aside className={`w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-white px-4 py-6 ${className}`}>
+    <aside className={`w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface px-4 py-6 ${className}`}>
       <div className="flex items-center gap-2.5 px-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white shadow-soft">
           <HeartPulse size={20} strokeWidth={2.4} />
@@ -224,7 +235,7 @@ function Sidebar({ route, onGo, onSignOut, className = "", header }) {
 function LoginScreen({ onSignIn, error, busy }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4 font-sans">
-      <div className="animate-pop w-full max-w-sm rounded-3xl bg-white p-8 shadow-card ring-1 ring-line/70">
+      <div className="animate-pop w-full max-w-sm rounded-3xl bg-surface p-8 shadow-card ring-1 ring-line/70">
         <div className="mb-6 flex flex-col items-center text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-soft">
             <HeartPulse size={28} strokeWidth={2.3} />
@@ -233,7 +244,7 @@ function LoginScreen({ onSignIn, error, busy }) {
           <p className="mt-1 text-sm text-muted">Sign in to view your health dashboard</p>
         </div>
         <button onClick={onSignIn} disabled={busy}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white py-3 text-sm font-bold text-ink shadow-soft transition-all duration-200 hover:bg-canvas active:scale-[0.98] disabled:opacity-60">
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface py-3 text-sm font-bold text-ink shadow-soft transition-all duration-200 hover:bg-canvas active:scale-[0.98] disabled:opacity-60">
           {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleGlyph />}
           {busy ? "Signing in…" : "Continue with Google"}
         </button>
