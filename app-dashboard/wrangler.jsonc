@@ -1,0 +1,10 @@
+{
+  // Cloudflare Workers static-assets config for the dashboard SPA.
+  // Workers Builds runs `npm run build` (outputs ./dist) then deploys these assets.
+  "name": "myhealthyglucose-dashboard",
+  "compatibility_date": "2025-07-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
