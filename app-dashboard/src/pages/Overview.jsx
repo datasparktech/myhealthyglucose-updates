@@ -99,7 +99,7 @@ export default function Overview({ model }) {
           </Card>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card title="Today's Meals" subtitle={`${o.activity.carbsToday}g carbs · ${o.activity.caloriesToday} kcal`} hover>
+            <Card title={o.mealsLabel || "Today's Meals"} subtitle={`${o.activity.carbsToday}g carbs · ${o.activity.caloriesToday} kcal today`} hover>
               {o.meals.length ? (
                 <ul className="space-y-3">
                   {o.meals.map((m, i) => (

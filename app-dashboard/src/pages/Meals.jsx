@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { UtensilsCrossed, Flame, Coffee, Sun, Moon, Cookie, Trophy, Plus } from "lucide-react";
+import { UtensilsCrossed, Flame, Coffee, Sun, Moon, Cookie, Trophy, Plus, Trash2 } from "lucide-react";
 import { Card, Muted, EmptyState, PageHeader, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { dayKey, dateLabel, timeLabel, DAY, clampArr } from "../data/transform.js";
-import { addFood } from "../lib/writes.js";
+import { addFood, removeRecord } from "../lib/writes.js";
+import { searchFoods } from "../data/foodDb.js";
 
 const MEAL_ORDER = ["Breakfast", "Lunch", "Dinner", "Snack"];
 const MEAL_ICON = { Breakfast: Coffee, Lunch: Sun, Dinner: Moon, Snack: Cookie };
@@ -21,10 +22,12 @@ export default function Meals({ model, user, reload }) {
   const now = Date.now();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", carbs: "", cal: "", meal: "Snack" });
+  const [openList, setOpenList] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const foodResults = useMemo(() => (form.name.trim().length >= 2 ? searchFoods(form.name) : []), [form.name]);
 
-  const openAdd = () => { setForm({ name: "", carbs: "", cal: "", meal: "Snack" }); setErr(""); setShowAdd(true); };
+  const openAdd = () => { setForm({ name: "", carbs: "", cal: "", meal: "Snack" }); setErr(""); setOpenList(false); setShowAdd(true); };
   const save = async () => {
     if (!form.name) { setErr("Enter a food name."); return; }
     setSaving(true); setErr("");
@@ -32,10 +35,31 @@ export default function Meals({ model, user, reload }) {
     catch (e) { setErr(String(e?.message || e)); }
     finally { setSaving(false); }
   };
+  const onDelete = async (id) => {
+    if (!id || !window.confirm("Delete this food entry?")) return;
+    try { await removeRecord(user.uid, "food", id); await reload(); } catch (e) { /* reload surfaces errors */ }
+  };
   const addModal = (
     <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add food">
       <div className="space-y-3">
-        <Field label="Food name"><input autoFocus className={fieldCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Oatmeal" /></Field>
+        <Field label="Food name">
+          <input autoFocus className={fieldCls} value={form.name}
+            onChange={(e) => { setForm({ ...form, name: e.target.value }); setOpenList(true); }}
+            placeholder="Search the food database…" />
+          {openList && foodResults.length > 0 && (
+            <div className="mt-1 max-h-44 overflow-auto rounded-xl border border-line bg-white shadow-card">
+              {foodResults.map((r) => (
+                <button key={r.name} type="button"
+                  onClick={() => { setForm({ ...form, name: r.name, carbs: String(r.carbs), cal: String(r.cal) }); setOpenList(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-canvas">
+                  <span className="truncate font-semibold text-ink">{r.name}</span>
+                  <span className="truncate text-[11px] text-muted">{r.serving}</span>
+                  <span className="ml-auto whitespace-nowrap text-xs font-bold text-brand-dark">{r.carbs}g · {r.cal} kcal</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Carbs (g)"><input type="number" className={fieldCls} value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} placeholder="0" /></Field>
           <Field label="Calories"><input type="number" className={fieldCls} value={form.cal} onChange={(e) => setForm({ ...form, cal: e.target.value })} placeholder="0" /></Field>
@@ -156,11 +180,17 @@ export default function Meals({ model, user, reload }) {
                       </div>
                       <ul className="space-y-1.5 pl-9">
                         {mi.map((f, i) => (
-                          <li key={f.id || i} className="flex items-center gap-2 text-sm">
+                          <li key={f.id || i} className="group flex items-center gap-2 text-sm">
                             <span className="truncate text-ink">{f.name}{f.qty && f.qty !== 1 ? ` ×${f.qty}` : ""}</span>
                             {f.ts && <span className="text-[11px] text-muted">· {timeLabel(f.ts)}</span>}
                             <span className="ml-auto font-semibold text-ink">{carbsOf(f)}g</span>
                             <span className="w-14 text-right text-xs text-muted">{calOf(f)} kcal</span>
+                            {f.id && (
+                              <button onClick={() => onDelete(f.id)} title="Delete"
+                                className="text-muted opacity-0 transition hover:text-danger group-hover:opacity-100">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </li>
                         ))}
                       </ul>

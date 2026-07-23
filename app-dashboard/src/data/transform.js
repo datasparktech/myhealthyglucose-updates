@@ -15,7 +15,10 @@
 
 export const DAY = 86400000;
 export const MMOL = 18.0182;
-export const dayKey = (d = new Date()) => new Date(d).toISOString().slice(0, 10);
+export const dayKey = (d = new Date()) => {
+  const t = new Date(d);
+  return isNaN(t.getTime()) ? "" : t.toISOString().slice(0, 10);
+};
 export const clampArr = (a) => (Array.isArray(a) ? a : []);
 export const mean = (arr) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
 export const gmi = (avg) => +(3.31 + 0.02392 * avg).toFixed(1);
@@ -300,15 +303,27 @@ function buildOverview(r, patient) {
   const sparkG = days14.slice(-7).map((d) => d.v);
   const sparkGlucose = sparkG.length ? sparkG : [latest.value];
 
-  const foodToday = clampArr(r.food)
-    .filter((f) => f && (f.day === dayKey() || (f.ts && now - f.ts <= DAY)))
+  const allFood = clampArr(r.food).filter((f) => f && (f.name || f.carbs != null));
+  const foodToday = allFood
+    .filter((f) => f.day === dayKey() || (f.ts && now - f.ts <= DAY))
     .sort((a, b) => (a.ts || 0) - (b.ts || 0));
-  const meals = foodToday.map((f) => ({
+  const carbsToday = foodToday.reduce((s, f) => s + Math.round((f.carbs || 0) * (f.qty || 1)), 0);
+  const caloriesToday = foodToday.reduce((s, f) => s + Math.round((f.cal || 0) * (f.qty || 1)), 0);
+
+  // Show today's meals; if none today, fall back to the most recent day logged
+  // so synced food always appears somewhere on the overview.
+  let mealsSrc = foodToday;
+  let mealsLabel = "Today's Meals";
+  if (!mealsSrc.length && allFood.length) {
+    const latest = allFood.reduce((a, b) => ((b.ts || 0) > (a.ts || 0) ? b : a));
+    const k = latest.day || dayKey(latest.ts);
+    mealsSrc = allFood.filter((f) => (f.day || dayKey(f.ts)) === k).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    mealsLabel = latest.ts ? `Latest Meals · ${dateLabel(latest.ts)}` : "Recent Meals";
+  }
+  const meals = mealsSrc.map((f) => ({
     name: f.name || "Food", time: f.ts ? timeLabel(f.ts) : "", tag: f.meal || "Meal",
     carbs: Math.round((f.carbs || 0) * (f.qty || 1)), cal: Math.round((f.cal || 0) * (f.qty || 1)),
   }));
-  const carbsToday = meals.reduce((sum, m) => sum + m.carbs, 0);
-  const caloriesToday = meals.reduce((sum, m) => sum + m.cal, 0);
 
   const tKey = dayKey();
   const medications = [];
@@ -361,7 +376,7 @@ function buildOverview(r, patient) {
   }
 
   return {
-    stats, timeInRange, activity, meals, medications, medsTaken, caution,
+    stats, timeInRange, activity, meals, mealsLabel, medications, medsTaken, caution,
     glucoseToday: todaySeries,
     glucose14d: days14.length ? days14 : todaySeries.map((p) => ({ label: p.label, v: p.v })),
     sparkGlucose, insights: insights.slice(0, 3), appointments: appts,

@@ -67,6 +67,19 @@ export function addKetone(uid, { value, ts }) {
   return mutate(uid, (data) => updateList(data, "ketone-log", "ketoneLog", append(item)));
 }
 
+// Delete an entry by id from a given record kind.
+const KEYS = {
+  glucose: ["glucose-logs", "glucose"],
+  food: ["food-log", "food"],
+  bp: ["blood-pressure", "bloodPressure"],
+  ketone: ["ketone-log", "ketoneLog"],
+};
+export function removeRecord(uid, kind, id) {
+  const [scoped, flat] = KEYS[kind] || [];
+  if (!scoped) return Promise.resolve();
+  return mutate(uid, (data) => updateList(data, scoped, flat, (arr) => arr.filter((x) => x.id !== id)));
+}
+
 // Toggle a medication dose for today (add a med-log entry if missing, remove if present).
 export function toggleMedDose(uid, { medId, date, time }) {
   const matches = (l) => l.medId === medId && l.date === date && (time == null || l.time === time);

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   LayoutGrid, LineChart as LineIcon, UtensilsCrossed, Pill, FileText, Settings as SettingsIcon,
   Bell, Search, LogOut, ChevronRight, HeartPulse, Loader2, Menu, X,
-  Activity, Stethoscope, Gauge, ChefHat, User,
+  Activity, Stethoscope, Gauge, ChefHat, User, RefreshCw,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
 import { buildModel } from "./data/transform.js";
@@ -92,8 +92,10 @@ export default function App() {
 function Shell({ model, user, error, onSignOut, reload }) {
   const [route, setRoute] = useState("overview");
   const [drawer, setDrawer] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const u = useUnit();
   const p = model.patient;
+  const doRefresh = async () => { setRefreshing(true); try { await reload(); } finally { setRefreshing(false); } };
   const active = NAV.find((n) => n.key === route) || NAV[0];
   const PageComp = active.Comp;
 
@@ -136,6 +138,10 @@ function Shell({ model, user, error, onSignOut, reload }) {
               <input placeholder="Search…"
                 className="w-44 rounded-xl border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 xl:w-56" />
             </div>
+            <button onClick={doRefresh} title="Refresh data"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-muted transition hover:text-brand-dark">
+              <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+            </button>
             <button onClick={u.toggle} title="Toggle glucose units"
               className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-xs font-bold text-brand-dark transition hover:bg-brand-faint active:scale-95">
               {u.unitLabel}

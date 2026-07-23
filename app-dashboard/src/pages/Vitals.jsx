@@ -2,10 +2,10 @@ import React, { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { HeartPulse, Activity, Droplets, Gauge, Plus } from "lucide-react";
+import { HeartPulse, Activity, Droplets, Gauge, Plus, Trash2 } from "lucide-react";
 import { Card, Muted, EmptyState, PageHeader, Badge, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { dateLabel, fullDateLabel, timeLabel, clampArr } from "../data/transform.js";
-import { addBloodPressure, addKetone } from "../lib/writes.js";
+import { addBloodPressure, addKetone, removeRecord } from "../lib/writes.js";
 
 const ketoneLevel = (v) => {
   if (v == null) return { label: "—", tone: "neutral" };
@@ -39,6 +39,10 @@ export default function Vitals({ model, user, reload }) {
     setSaving(true); setErr("");
     try { await addKetone(user.uid, { value: kForm.value }); await reload(); setModal(null); }
     catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
+  const onDeleteKetone = async (id) => {
+    if (!id || !window.confirm("Delete this ketone reading?")) return;
+    try { await removeRecord(user.uid, "ketone", id); await reload(); } catch (e) { /* reload surfaces errors */ }
   };
 
   const addButtons = (
@@ -149,12 +153,18 @@ export default function Vitals({ model, user, reload }) {
             {ketones.slice(0, 20).map((k) => {
               const lv = ketoneLevel(k.value ?? k.level);
               return (
-                <li key={k.id || k.ts} className="flex items-center gap-3 py-2.5">
+                <li key={k.id || k.ts} className="group flex items-center gap-3 py-2.5">
                   <Droplets size={16} className="text-sky-500" />
                   <span className="text-lg font-extrabold text-ink">{k.value ?? k.level ?? "—"}</span>
                   <span className="text-xs text-muted">mmol/L</span>
                   <span className="ml-3"><Badge tone={lv.tone}>{lv.label}</Badge></span>
                   <span className="ml-auto text-xs text-muted">{fullDateLabel(k.ts)} · {timeLabel(k.ts)}</span>
+                  {k.id && (
+                    <button onClick={() => onDeleteKetone(k.id)} title="Delete"
+                      className="text-muted opacity-0 transition hover:text-danger group-hover:opacity-100">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </li>
               );
             })}

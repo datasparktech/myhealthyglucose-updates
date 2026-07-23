@@ -2,13 +2,13 @@ import React, { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea,
 } from "recharts";
-import { Droplet, TrendingUp, Target, Activity, ArrowDown, ArrowUp, Gauge, Plus } from "lucide-react";
+import { Droplet, TrendingUp, Target, Activity, ArrowDown, ArrowUp, Gauge, Plus, Trash2 } from "lucide-react";
 import { Card, Segmented, Muted, EmptyState, PageHeader, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import {
   glucoseStats, glucoseState, STATE_COLOR, dateLabel, timeLabel, fullDateLabel, dayKey, mean, DAY,
 } from "../data/transform.js";
 import { useUnit } from "../lib/units.js";
-import { addGlucose } from "../lib/writes.js";
+import { addGlucose, removeRecord } from "../lib/writes.js";
 
 const CONTEXTS = ["Fasting", "Before Meal", "After Meal", "Bedtime", "Exercise", "Random"];
 function toLocalInput(ts) {
@@ -60,6 +60,10 @@ export default function GlucoseLog({ model, user, reload }) {
       setShowAdd(false);
     } catch (e) { setErr(String(e?.message || e)); }
     finally { setSaving(false); }
+  };
+  const onDelete = async (id) => {
+    if (!window.confirm("Delete this reading?")) return;
+    try { await removeRecord(user.uid, "glucose", id); await reload(); } catch (e) { /* reload surfaces errors */ }
   };
 
   const inRange = useMemo(() => glucose.filter((g) => now - g.ts <= days * DAY), [glucose, days, now]);
@@ -202,12 +206,18 @@ export default function GlucoseLog({ model, user, reload }) {
               {readings.map((g) => {
                 const st = glucoseState(g.value, p.targetLow, p.targetHigh);
                 return (
-                  <li key={g.id || g.ts} className="flex items-center gap-3 py-2.5">
+                  <li key={g.id || g.ts} className="group flex items-center gap-3 py-2.5">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: STATE_COLOR[st] }} />
                     <span className="w-14 text-lg font-extrabold text-ink">{u.conv(g.value)}</span>
                     <span className="text-xs text-muted">{gl}</span>
                     <span className="ml-3 truncate text-xs font-medium text-muted">{g.context || "—"}</span>
                     <span className="ml-auto whitespace-nowrap text-xs text-muted">{fullDateLabel(g.ts)} · {timeLabel(g.ts)}</span>
+                    {g.id && (
+                      <button onClick={() => onDelete(g.id)} title="Delete reading"
+                        className="text-muted opacity-0 transition hover:text-danger group-hover:opacity-100">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </li>
                 );
               })}
