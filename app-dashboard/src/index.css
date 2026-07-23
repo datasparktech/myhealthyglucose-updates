@@ -15,7 +15,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Thin, subtle scrollbars to match the calm brand look */
+/* Thin, subtle scrollbars */
 * {
   scrollbar-width: thin;
   scrollbar-color: #cfe6e2 transparent;
@@ -29,16 +29,51 @@ body {
   border-radius: 8px;
 }
 
+/* ---------------------------- animations ---------------------------- */
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.animate-fadeUp {
-  animation: fadeUp 0.4s ease both;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.94); }
+  60% { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-fadeUp { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fadeIn { animation: fadeIn 0.4s ease both; }
+.animate-pop { animation: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-slideIn { animation: slideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Page transition wrapper — re-runs on route change via keyed remount */
+.page-enter { animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #eef6f4 25%, #e2f0ed 37%, #eef6f4 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* Hide scrollbar on horizontal pickers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Print: only the report area */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .print-full { width: 100% !important; }
 }
