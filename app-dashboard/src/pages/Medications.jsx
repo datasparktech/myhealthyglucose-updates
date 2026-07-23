@@ -99,23 +99,25 @@ export default function Medications({ model, user, reload }) {
         <div className="space-y-4 xl:col-span-2">
           <Card title="Today's Schedule" subtitle={new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}>
             {schedule.length ? (
-              <ul className="space-y-2.5">
-                {schedule.map((s) => (
-                  <li key={s.id}>
-                    <button onClick={() => onToggle(s)} disabled={busy === s.id}
-                      className="flex w-full items-center gap-3 rounded-xl bg-canvas px-3 py-2.5 text-left transition hover:bg-brand-faint disabled:opacity-60">
-                      {s.taken ? <CheckCircle2 size={20} className="text-brand" /> : <Circle size={20} className="text-line" />}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-ink">{s.name}</div>
-                        <div className="text-xs text-muted">{s.dose}</div>
-                      </div>
-                      {s.time && <span className="flex items-center gap-1 text-xs font-semibold text-muted"><Clock size={12} />{s.time}</span>}
-                      <Badge tone={s.taken ? "good" : "warn"}>{s.taken ? "Taken" : "Due"}</Badge>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-center text-[11px] text-muted">Tap a dose to mark it taken or undo.</p>
+              <>
+                <ul className="space-y-2.5">
+                  {schedule.map((s) => (
+                    <li key={s.id}>
+                      <button onClick={() => onToggle(s)} disabled={busy === s.id}
+                        className="flex w-full items-center gap-3 rounded-xl bg-canvas px-3 py-2.5 text-left transition hover:bg-brand-faint disabled:opacity-60">
+                        {s.taken ? <CheckCircle2 size={20} className="text-brand" /> : <Circle size={20} className="text-line" />}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-ink">{s.name}</div>
+                          <div className="text-xs text-muted">{s.dose}</div>
+                        </div>
+                        {s.time && <span className="flex items-center gap-1 text-xs font-semibold text-muted"><Clock size={12} />{s.time}</span>}
+                        <Badge tone={s.taken ? "good" : "warn"}>{s.taken ? "Taken" : "Due"}</Badge>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-center text-[11px] text-muted">Tap a dose to mark it taken or undo.</p>
+              </>
             ) : <Muted>No doses scheduled today.</Muted>}
           </Card>
 
