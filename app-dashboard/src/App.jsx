@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutGrid, LineChart as LineIcon, UtensilsCrossed, Pill, FileText, Settings as SettingsIcon,
   Bell, Search, LogOut, Crown, ChevronRight, HeartPulse, Loader2, Menu, X,
-  Activity, Stethoscope,
+  Activity, Stethoscope, Gauge, ChefHat, User,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
 import { buildModel } from "./data/transform.js";
@@ -11,9 +11,12 @@ import Overview from "./pages/Overview.jsx";
 import GlucoseLog from "./pages/GlucoseLog.jsx";
 import Patterns from "./pages/Patterns.jsx";
 import Meals from "./pages/Meals.jsx";
+import Recipes from "./pages/Recipes.jsx";
 import Medications from "./pages/Medications.jsx";
+import Vitals from "./pages/Vitals.jsx";
 import Care from "./pages/Care.jsx";
 import Reports from "./pages/Reports.jsx";
+import Profile from "./pages/Profile.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 const NAV = [
@@ -21,9 +24,12 @@ const NAV = [
   { key: "glucose", label: "Glucose Log", icon: LineIcon, Comp: GlucoseLog },
   { key: "patterns", label: "Patterns", icon: Activity, Comp: Patterns },
   { key: "meals", label: "Meals", icon: UtensilsCrossed, Comp: Meals },
+  { key: "recipes", label: "Recipes", icon: ChefHat, Comp: Recipes },
   { key: "meds", label: "Medications", icon: Pill, Comp: Medications },
+  { key: "vitals", label: "Vitals & Labs", icon: Gauge, Comp: Vitals },
   { key: "care", label: "Care & Records", icon: Stethoscope, Comp: Care },
   { key: "reports", label: "Reports", icon: FileText, Comp: Reports },
+  { key: "profile", label: "Health Profile", icon: User, Comp: Profile },
   { key: "settings", label: "Settings", icon: SettingsIcon, Comp: SettingsPage },
 ];
 
@@ -165,7 +171,7 @@ function Shell({ model, user, error, onSignOut }) {
 
 function Sidebar({ route, onGo, onSignOut, className = "", header }) {
   return (
-    <aside className={`w-64 shrink-0 flex-col border-r border-line bg-white px-4 py-6 ${className}`}>
+    <aside className={`w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-white px-4 py-6 ${className}`}>
       <div className="flex items-center gap-2.5 px-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white shadow-soft">
           <HeartPulse size={20} strokeWidth={2.4} />

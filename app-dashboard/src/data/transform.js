@@ -85,6 +85,12 @@ export function extractRecords(main) {
     preventiveScreenings: clampArr(main.preventiveScreenings),
     footChecks: clampArr(main.footChecks),
     labResults: clampArr(main.labResults),
+    recipes: clampArr(main.recipes),
+    injectionSites: clampArr(main.injectionSites),
+    ketoneLog: clampArr(main.ketoneLog),
+    sickDayMode: main.sickDayMode || {},
+    dexcom: main.dexcom || {},
+    goals: main.goals || {},
     targets: main.targets || { carbs: 150, calories: 1800 },
     medicalProfile: main.medicalProfile || {},
     settings: main.settings || {},
@@ -105,6 +111,12 @@ export function extractRecords(main) {
       preventiveScreenings: clampArr(pd["preventive-screenings"]),
       footChecks: clampArr(pd["foot-checks"]),
       labResults: clampArr(pd["lab-results"]),
+      recipes: clampArr(pd["recipes"]),
+      injectionSites: clampArr(pd["injection-sites"]),
+      ketoneLog: clampArr(pd["ketone-log"]),
+      sickDayMode: pd["sick-day-mode"] || flat.sickDayMode,
+      dexcom: pd["dexcom"] || flat.dexcom,
+      goals: pd["daily-goals"] || flat.goals,
       targets: pd["targets"] || flat.targets,
       medicalProfile: pd["medical-profile"] || flat.medicalProfile,
       settings: flat.settings,
@@ -386,6 +398,8 @@ export function buildModel(main, user) {
     appointments: clampArr(r.appointments), doctors: clampArr(r.doctors),
     emergencyContacts: clampArr(r.emergencyContacts), preventiveScreenings: clampArr(r.preventiveScreenings),
     footChecks: clampArr(r.footChecks), labResults: clampArr(r.labResults),
+    recipes: clampArr(r.recipes), injectionSites: clampArr(r.injectionSites),
+    ketoneLog: clampArr(r.ketoneLog), sickDayMode: r.sickDayMode || {}, dexcom: r.dexcom || {}, goals: r.goals || {},
     targets: r.targets || { carbs: 150, calories: 1800 },
     medicalProfile: r.medicalProfile || {}, settings: r.settings || {},
   };
@@ -402,6 +416,7 @@ function emptyRecords() {
   return {
     glucose: [], hba1c: [], food: [], meds: [], medLog: [], bloodPressure: [],
     appointments: [], doctors: [], emergencyContacts: [], preventiveScreenings: [], footChecks: [], labResults: [],
+    recipes: [], injectionSites: [], ketoneLog: [], sickDayMode: {}, dexcom: {}, goals: {},
     targets: { carbs: 150, calories: 1800 }, medicalProfile: {}, settings: {},
   };
 }

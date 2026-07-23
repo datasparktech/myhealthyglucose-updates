@@ -1,15 +1,10 @@
 import React, { useMemo } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
-import {
-  CalendarClock, Stethoscope, HeartPulse, Activity, Phone, MapPin, ShieldCheck,
-  Contact, Footprints, AlertTriangle, CheckCircle2,
+  CalendarClock, Stethoscope, Phone, MapPin, ShieldCheck, Contact, Footprints,
+  AlertTriangle, CheckCircle2,
 } from "lucide-react";
 import { Card, Muted, EmptyState, PageHeader, Badge } from "../components/ui.jsx";
-import {
-  upcomingAppointments, screeningStatus, fullDateLabel, dateLabel, clampArr,
-} from "../data/transform.js";
+import { upcomingAppointments, screeningStatus, fullDateLabel, dateLabel, clampArr } from "../data/transform.js";
 
 export default function Care({ model }) {
   const r = model.records;
@@ -17,24 +12,16 @@ export default function Care({ model }) {
   const doctors = clampArr(r.doctors);
   const contacts = clampArr(r.emergencyContacts);
   const screenings = clampArr(r.preventiveScreenings);
-  const bp = useMemo(() => [...clampArr(r.bloodPressure)].filter((b) => b.ts).sort((a, b) => a.ts - b.ts), [r]);
-  const a1c = useMemo(() => [...clampArr(r.hba1c)].filter((h) => h.value != null)
-    .sort((a, b) => new Date(a.date) - new Date(b.date)), [r]);
-  const footChecks = useMemo(() => [...clampArr(r.footChecks)].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 4), [r]);
+  const footChecks = useMemo(() => [...clampArr(r.footChecks)].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5), [r]);
 
-  const nothing = !appts.length && !doctors.length && !contacts.length && !screenings.length && !bp.length && !a1c.length;
+  const nothing = !appts.length && !doctors.length && !contacts.length && !screenings.length && !footChecks.length;
   if (nothing) {
-    return <EmptyState icon={CalendarClock} title="No care records yet">Add appointments, doctors, blood pressure, or lab results in the app to see them here.</EmptyState>;
+    return <EmptyState icon={CalendarClock} title="No care records yet">Add appointments, doctors, or contacts in the app to see them here.</EmptyState>;
   }
-
-  const bpChart = bp.slice(-30).map((b) => ({ label: dateLabel(b.ts), sys: b.systolic, dia: b.diastolic }));
-  const latestBp = bp[bp.length - 1];
-  const a1cChart = a1c.slice(-12).map((h) => ({ label: h.date ? dateLabel(new Date(h.date).getTime()) : "", v: h.value }));
-  const latestA1c = a1c[a1c.length - 1];
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Care & Records" subtitle="Appointments, providers & clinical history" />
+      <PageHeader title="Care & Records" subtitle="Appointments, providers & screenings" />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
@@ -49,10 +36,7 @@ export default function Care({ model }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-bold text-ink">{a.title || "Appointment"}</div>
-                      <div className="text-xs text-muted">
-                        {[a.doctorName, a.specialty].filter(Boolean).join(" · ") || "—"}
-                        {a.time ? ` · ${a.time}` : ""}
-                      </div>
+                      <div className="text-xs text-muted">{[a.doctorName, a.specialty].filter(Boolean).join(" · ") || "—"}{a.time ? ` · ${a.time}` : ""}</div>
                       {a.location && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted"><MapPin size={11} />{a.location}</div>}
                     </div>
                     <Badge tone="good">{fullDateLabel(a.ts)}</Badge>
@@ -60,23 +44,6 @@ export default function Care({ model }) {
                 ))}
               </ul>
             ) : <Muted>No upcoming appointments.</Muted>}
-          </Card>
-
-          <Card title="Blood Pressure" subtitle={latestBp ? `Latest: ${latestBp.systolic}/${latestBp.diastolic} mmHg${latestBp.pulse ? ` · ${latestBp.pulse} bpm` : ""}` : "No readings"}
-            action={<HeartPulse size={16} className="text-brand" />}>
-            {bpChart.length ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={bpChart} margin={{ top: 6, right: 6, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 6" stroke="#DCEEEC" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#5A6D6D" }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={20} />
-                  <YAxis domain={[50, 180]} tick={{ fontSize: 11, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={38} />
-                  <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #DCEEEC", fontSize: 12 }} />
-                  <Legend iconType="plainline" wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="sys" name="Systolic" stroke="#0A5B62" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="dia" name="Diastolic" stroke="#0EA99A" strokeWidth={2.5} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : <Muted>Log blood pressure in the app to see trends.</Muted>}
           </Card>
 
           <Card title="Your Doctors" action={<Stethoscope size={16} className="text-brand" />}>
@@ -96,21 +63,6 @@ export default function Care({ model }) {
         </div>
 
         <div className="space-y-4">
-          <Card title="A1c History" subtitle={latestA1c ? `Latest: ${latestA1c.value}%` : "No lab results"}
-            action={<Activity size={16} className="text-brand" />}>
-            {a1cChart.length ? (
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={a1cChart} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 6" stroke="#DCEEEC" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#5A6D6D" }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[5, 10]} tick={{ fontSize: 10, fill: "#5A6D6D" }} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip formatter={(v) => [`${v}%`, "A1c"]} contentStyle={{ borderRadius: 10, border: "1px solid #DCEEEC", fontSize: 12 }} />
-                  <Line type="monotone" dataKey="v" stroke="#0A5B62" strokeWidth={2.5} dot={{ r: 3, fill: "#0A5B62" }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : <Muted>No A1c labs logged.</Muted>}
-          </Card>
-
           <Card title="Preventive Screenings" action={<ShieldCheck size={16} className="text-brand" />}>
             {screenings.length ? (
               <ul className="space-y-2">
@@ -133,9 +85,7 @@ export default function Care({ model }) {
               <ul className="space-y-2">
                 {contacts.map((c) => (
                   <li key={c.id} className="flex items-center gap-3 text-sm">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-faint text-xs font-bold text-brand-dark">
-                      {(c.name || "?").slice(0, 1).toUpperCase()}
-                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-faint text-xs font-bold text-brand-dark">{(c.name || "?").slice(0, 1).toUpperCase()}</div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold text-ink">{c.name}</div>
                       {c.relation && <div className="text-xs text-muted">{c.relation}</div>}
