@@ -5,7 +5,7 @@ import {
 import { HeartPulse, Activity, Droplets, Gauge, Plus, Trash2 } from "lucide-react";
 import { Card, Muted, EmptyState, PageHeader, Badge, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { dateLabel, fullDateLabel, timeLabel, clampArr } from "../data/transform.js";
-import { addBloodPressure, addKetone, removeRecord } from "../lib/writes.js";
+import { addBloodPressure, addKetone, addHba1c, removeRecord } from "../lib/writes.js";
 
 const ketoneLevel = (v) => {
   if (v == null) return { label: "—", tone: "neutral" };
@@ -20,14 +20,22 @@ export default function Vitals({ model, user, reload }) {
   const a1c = useMemo(() => [...clampArr(r.hba1c)].filter((h) => h.value != null).sort((a, b) => new Date(a.date) - new Date(b.date)), [r]);
   const ketones = useMemo(() => [...clampArr(r.ketoneLog)].filter((k) => k.ts).sort((a, b) => b.ts - a.ts), [r]);
 
-  const [modal, setModal] = useState(null); // 'bp' | 'ketone' | null
+  const [modal, setModal] = useState(null); // 'bp' | 'ketone' | 'a1c' | null
   const [bpForm, setBpForm] = useState({ sys: "", dia: "", pulse: "" });
   const [kForm, setKForm] = useState({ value: "" });
+  const [a1cForm, setA1cForm] = useState({ value: "", date: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
   const openBp = () => { setBpForm({ sys: "", dia: "", pulse: "" }); setErr(""); setModal("bp"); };
   const openK = () => { setKForm({ value: "" }); setErr(""); setModal("ketone"); };
+  const openA1c = () => { setA1cForm({ value: "", date: new Date().toISOString().slice(0, 10) }); setErr(""); setModal("a1c"); };
+  const saveA1c = async () => {
+    if (!a1cForm.value) { setErr("Enter an A1c value."); return; }
+    setSaving(true); setErr("");
+    try { await addHba1c(user.uid, { value: a1cForm.value, date: a1cForm.date }); await reload(); setModal(null); }
+    catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
   const saveBp = async () => {
     if (!bpForm.sys || !bpForm.dia) { setErr("Enter systolic and diastolic."); return; }
     setSaving(true); setErr("");
@@ -46,9 +54,10 @@ export default function Vitals({ model, user, reload }) {
   };
 
   const addButtons = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" icon={Plus} onClick={openBp}>BP</Button>
       <Button variant="outline" size="sm" icon={Plus} onClick={openK}>Ketone</Button>
+      <Button variant="outline" size="sm" icon={Plus} onClick={openA1c}>A1c</Button>
     </div>
   );
   const modals = (
@@ -74,6 +83,19 @@ export default function Vitals({ model, user, reload }) {
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setModal(null)}>Cancel</Button>
             <Button size="sm" onClick={saveK} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={modal === "a1c"} onClose={() => setModal(null)} title="Add A1c lab result">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="A1c (%)"><input type="number" step="any" autoFocus className={fieldCls} value={a1cForm.value} onChange={(e) => setA1cForm({ ...a1cForm, value: e.target.value })} placeholder="e.g. 6.8" /></Field>
+            <Field label="Date"><input type="date" className={fieldCls} value={a1cForm.date} onChange={(e) => setA1cForm({ ...a1cForm, date: e.target.value })} /></Field>
+          </div>
+          {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setModal(null)}>Cancel</Button>
+            <Button size="sm" onClick={saveA1c} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
           </div>
         </div>
       </Modal>

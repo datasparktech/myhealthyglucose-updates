@@ -67,12 +67,39 @@ export function addKetone(uid, { value, ts }) {
   return mutate(uid, (data) => updateList(data, "ketone-log", "ketoneLog", append(item)));
 }
 
+export function addAppointment(uid, { title, doctorId, date, time, location, notes }) {
+  const item = { id: genId(), title: title || "Appointment", doctorId: doctorId || "", date: date || "", time: time || "", location: location || "", notes: notes || "" };
+  return mutate(uid, (data) => updateList(data, "appointments", "appointments", append(item)));
+}
+
+export function addHba1c(uid, { value, date }) {
+  const item = { id: genId(), value: Number(value), date: date || new Date().toISOString().slice(0, 10) };
+  return mutate(uid, (data) => updateList(data, "hba1c-logs", "hba1c", append(item)));
+}
+
+// Merge a patch into an object field (both v2 scoped and flat).
+function setObject(data, scopedKey, flatKey, patch) {
+  const pid = activePid(data);
+  if (pid) {
+    data.profileData = data.profileData || {};
+    data.profileData[pid] = data.profileData[pid] || {};
+    data.profileData[pid][scopedKey] = { ...(data.profileData[pid][scopedKey] || {}), ...patch };
+  }
+  data[flatKey] = { ...(data[flatKey] || {}), ...patch };
+}
+
+export function updateTargets(uid, patch) {
+  return mutate(uid, (data) => setObject(data, "targets", "targets", patch));
+}
+
 // Delete an entry by id from a given record kind.
 const KEYS = {
   glucose: ["glucose-logs", "glucose"],
   food: ["food-log", "food"],
   bp: ["blood-pressure", "bloodPressure"],
   ketone: ["ketone-log", "ketoneLog"],
+  appointment: ["appointments", "appointments"],
+  hba1c: ["hba1c-logs", "hba1c"],
 };
 export function removeRecord(uid, kind, id) {
   const [scoped, flat] = KEYS[kind] || [];

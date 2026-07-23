@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  User, Target, HeartPulse, LogOut, Shield, FileText, Smartphone, Database, CheckCircle2,
+  User, HeartPulse, LogOut, Shield, FileText, Smartphone, Database, CheckCircle2, Pencil,
 } from "lucide-react";
-import { Card, Button, PageHeader, Badge } from "../components/ui.jsx";
+import { Card, Button, PageHeader, Badge, Modal, Field, fieldCls } from "../components/ui.jsx";
+import { updateTargets } from "../lib/writes.js";
 
 function Row({ label, value }) {
   return (
@@ -13,10 +14,21 @@ function Row({ label, value }) {
   );
 }
 
-export default function SettingsPage({ model, user, onSignOut }) {
+export default function SettingsPage({ model, user, onSignOut, reload }) {
   const p = model.patient;
   const t = model.records.targets || {};
   const updated = model.updatedAt ? new Date(model.updatedAt).toLocaleString() : "—";
+
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({ carbs: "", calories: "" });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const openEdit = () => { setForm({ carbs: String(t.carbs ?? 150), calories: String(t.calories ?? 1800) }); setErr(""); setShow(true); };
+  const save = async () => {
+    setSaving(true); setErr("");
+    try { await updateTargets(user.uid, { carbs: Number(form.carbs) || 0, calories: Number(form.calories) || 0 }); await reload(); setShow(false); }
+    catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
 
   return (
     <div className="space-y-4">
@@ -38,13 +50,28 @@ export default function SettingsPage({ model, user, onSignOut }) {
           </div>
         </Card>
 
-        <Card title="Health Profile" action={<HeartPulse size={16} className="text-brand" />}>
+        <Card title="Health Profile"
+          action={<button onClick={openEdit} className="flex items-center gap-1 text-xs font-bold text-brand-dark hover:underline"><Pencil size={13} /> Edit goals</button>}>
           <Row label="Condition" value={p.condition} />
           <Row label="Target range" value={`${p.targetLow}–${p.targetHigh} mg/dL`} />
           <Row label="Daily carb goal" value={`${t.carbs ?? 150} g`} />
           <Row label="Daily calorie goal" value={`${t.calories ?? 1800} kcal`} />
-          <p className="mt-3 text-[11px] text-muted">Edit these in the mobile app — changes sync here automatically.</p>
+          <p className="mt-3 text-[11px] text-muted">Carb & calorie goals are editable here; glucose target range is set in the app.</p>
         </Card>
+
+        <Modal open={show} onClose={() => setShow(false)} title="Edit daily goals">
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Daily carbs (g)"><input type="number" autoFocus className={fieldCls} value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} /></Field>
+              <Field label="Daily calories"><input type="number" className={fieldCls} value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} /></Field>
+            </div>
+            {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={() => setShow(false)}>Cancel</Button>
+              <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save goals"}</Button>
+            </div>
+          </div>
+        </Modal>
 
         <Card title="Data & Sync" action={<Database size={16} className="text-brand" />}>
           <Row label="Source" value={<span className="inline-flex items-center gap-1"><CheckCircle2 size={13} className="text-brand" /> Firebase (live)</span>} />

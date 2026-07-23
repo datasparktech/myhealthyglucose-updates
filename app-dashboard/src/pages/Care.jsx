@@ -1,12 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   CalendarClock, Stethoscope, Phone, MapPin, ShieldCheck, Contact, Footprints,
-  AlertTriangle, CheckCircle2,
+  AlertTriangle, CheckCircle2, Plus, Trash2,
 } from "lucide-react";
-import { Card, Muted, EmptyState, PageHeader, Badge } from "../components/ui.jsx";
+import { Card, Muted, EmptyState, PageHeader, Badge, Button, Modal, Field, fieldCls } from "../components/ui.jsx";
 import { upcomingAppointments, screeningStatus, fullDateLabel, dateLabel, clampArr } from "../data/transform.js";
+import { addAppointment, removeRecord } from "../lib/writes.js";
 
-export default function Care({ model }) {
+export default function Care({ model, user, reload }) {
   const r = model.records;
   const appts = useMemo(() => upcomingAppointments(r.appointments, r.doctors), [r]);
   const doctors = clampArr(r.doctors);
@@ -14,14 +15,64 @@ export default function Care({ model }) {
   const screenings = clampArr(r.preventiveScreenings);
   const footChecks = useMemo(() => [...clampArr(r.footChecks)].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5), [r]);
 
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({ title: "", doctorId: "", date: "", time: "", location: "" });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const openAdd = () => { setForm({ title: "", doctorId: "", date: "", time: "", location: "" }); setErr(""); setShow(true); };
+  const save = async () => {
+    if (!form.title || !form.date) { setErr("Enter a title and date."); return; }
+    setSaving(true); setErr("");
+    try { await addAppointment(user.uid, form); await reload(); setShow(false); }
+    catch (e) { setErr(String(e?.message || e)); } finally { setSaving(false); }
+  };
+  const onDelete = async (id) => {
+    if (!id || !window.confirm("Delete this appointment?")) return;
+    try { await removeRecord(user.uid, "appointment", id); await reload(); } catch (e) { /* reload surfaces errors */ }
+  };
+  const apptModal = (
+    <Modal open={show} onClose={() => setShow(false)} title="Add appointment">
+      <div className="space-y-3">
+        <Field label="Title"><input autoFocus className={fieldCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Endocrinologist review" /></Field>
+        {doctors.length > 0 && (
+          <Field label="Doctor">
+            <select className={fieldCls} value={form.doctorId} onChange={(e) => setForm({ ...form, doctorId: e.target.value })}>
+              <option value="">— None —</option>
+              {doctors.map((d) => <option key={d.id} value={d.id}>{d.name}{d.specialty ? ` · ${d.specialty}` : ""}</option>)}
+            </select>
+          </Field>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Date"><input type="date" className={fieldCls} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+          <Field label="Time"><input type="time" className={fieldCls} value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></Field>
+        </div>
+        <Field label="Location"><input className={fieldCls} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Clinic / address (optional)" /></Field>
+        {err && <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={() => setShow(false)}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Add appointment"}</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+
   const nothing = !appts.length && !doctors.length && !contacts.length && !screenings.length && !footChecks.length;
   if (nothing) {
-    return <EmptyState icon={CalendarClock} title="No care records yet">Add appointments, doctors, or contacts in the app to see them here.</EmptyState>;
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Care & Records" subtitle="No records yet"
+          action={<Button size="sm" icon={Plus} onClick={openAdd}>Appointment</Button>} />
+        <EmptyState icon={CalendarClock} title="No care records yet">Add an appointment, or log doctors and contacts in the app.</EmptyState>
+        {apptModal}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Care & Records" subtitle="Appointments, providers & screenings" />
+      <PageHeader title="Care & Records" subtitle="Appointments, providers & screenings"
+        action={<Button size="sm" icon={Plus} onClick={openAdd}>Appointment</Button>} />
+      {apptModal}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
@@ -29,7 +80,7 @@ export default function Care({ model }) {
             {appts.length ? (
               <ul className="space-y-3">
                 {appts.map((a) => (
-                  <li key={a.id} className="flex items-center gap-3 rounded-xl bg-canvas p-3">
+                  <li key={a.id} className="group flex items-center gap-3 rounded-xl bg-canvas p-3">
                     <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-brand-faint">
                       <span className="text-sm font-extrabold leading-none text-brand-dark">{new Date(a.ts).getDate()}</span>
                       <span className="text-[9px] font-bold uppercase text-brand">{new Date(a.ts).toLocaleDateString([], { month: "short" })}</span>
@@ -40,6 +91,12 @@ export default function Care({ model }) {
                       {a.location && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted"><MapPin size={11} />{a.location}</div>}
                     </div>
                     <Badge tone="good">{fullDateLabel(a.ts)}</Badge>
+                    {a.id && (
+                      <button onClick={() => onDelete(a.id)} title="Delete"
+                        className="text-muted opacity-0 transition hover:text-danger group-hover:opacity-100">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
