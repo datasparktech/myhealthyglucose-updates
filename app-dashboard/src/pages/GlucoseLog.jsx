@@ -21,6 +21,14 @@ const FILTERS = [
   { value: "high", label: "High" },
   { value: "low", label: "Low" },
 ];
+const TILE_ACCENT = [
+  "bg-brand-faint text-brand-dark",
+  "bg-violet-100 text-violet-600",
+  "bg-sky-100 text-sky-600",
+  "bg-amber-100 text-amber-600",
+  "bg-rose-100 text-rose-600",
+  "bg-indigo-100 text-indigo-600",
+];
 
 export default function GlucoseLog({ model }) {
   const p = model.patient;
@@ -73,8 +81,8 @@ export default function GlucoseLog({ model }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {tiles.map((t, i) => (
           <div key={t.label} style={{ animationDelay: `${i * 50}ms` }}
-            className="animate-fadeUp rounded-2xl bg-white p-4 shadow-card ring-1 ring-line/70">
-            <t.icon size={16} className="text-brand-dark" />
+            className="animate-fadeUp rounded-2xl bg-white p-4 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_26px_rgba(10,91,98,0.12)]">
+            <div className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${TILE_ACCENT[i % 6]}`}><t.icon size={16} /></div>
             <div className="mt-2 text-2xl font-extrabold text-ink">{t.value}</div>
             <div className="text-[11px] font-medium text-muted">{t.label} <span className="opacity-70">{t.unit}</span></div>
           </div>

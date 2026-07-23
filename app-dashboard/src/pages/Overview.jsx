@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import {
   Droplet, Target, Activity, TrendingUp, UtensilsCrossed, Flame, ClipboardList,
-  CheckCircle2, Circle, Sparkles, AlertTriangle, Info, CalendarClock, MapPin,
+  CheckCircle2, Circle, Sparkles, AlertTriangle, Info, CalendarClock, ShieldAlert,
 } from "lucide-react";
 import { Card, StatCard, TrendChip, Segmented, Muted, EmptyState, AnimatedNumber, Badge } from "../components/ui.jsx";
 import { fullDateLabel } from "../data/transform.js";
@@ -47,15 +47,27 @@ export default function Overview({ model }) {
 
   return (
     <div className="space-y-4">
+      {o.caution && (
+        <div className={`animate-fadeUp flex items-start gap-3 rounded-2xl p-4 ring-1 ${o.caution.level === "danger" ? "bg-danger/10 ring-danger/25" : "bg-warn/10 ring-warn/25"}`}>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${o.caution.level === "danger" ? "bg-danger/15 text-danger" : "bg-warn/20 text-warn"}`}>
+            <ShieldAlert size={19} />
+          </div>
+          <div>
+            <div className={`text-sm font-bold ${o.caution.level === "danger" ? "text-danger" : "text-ink"}`}>{o.caution.title}</div>
+            <p className="mt-0.5 text-xs leading-relaxed text-ink/80">{o.caution.text}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard id="glc" delay={0} icon={Droplet} label="Current Glucose" value={u.conv(o.stats.currentGlucose)} decimals={u.decimals}
-          unit={u.unitLabel} sparkColor="#0EA99A" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.currentDelta)} invert />} />
-        <StatCard id="tir" delay={60} icon={Target} label="Time in Range" value={o.stats.timeInRange}
-          unit="%" sparkColor="#3FC9BA" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={0} unit="%" />} />
-        <StatCard id="a1c" delay={120} icon={Activity} label="Est. A1c (GMI)" value={o.stats.estA1c} decimals={1}
-          unit="%" sparkColor="#0A5B62" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={o.stats.a1cDelta} unit="%" invert />} />
-        <StatCard id="avg" delay={180} icon={TrendingUp} label="Avg Glucose (14d)" value={u.conv(o.stats.avgGlucose)} decimals={u.decimals}
-          unit={u.unitLabel} sparkColor="#E0A03A" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.avgDelta)} invert />} />
+        <StatCard id="glc" delay={0} accent="teal" icon={Droplet} label="Current Glucose" value={u.conv(o.stats.currentGlucose)} decimals={u.decimals}
+          unit={u.unitLabel} spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.currentDelta)} invert />} />
+        <StatCard id="tir" delay={60} accent="sky" icon={Target} label="Time in Range" value={o.stats.timeInRange}
+          unit="%" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={0} unit="%" />} />
+        <StatCard id="a1c" delay={120} accent="violet" icon={Activity} label="Est. A1c (GMI)" value={o.stats.estA1c} decimals={1}
+          unit="%" note="Estimate from avg glucose — not a lab test" spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={o.stats.a1cDelta} unit="%" invert />} />
+        <StatCard id="avg" delay={180} accent="amber" icon={TrendingUp} label="Avg Glucose (14d)" value={u.conv(o.stats.avgGlucose)} decimals={u.decimals}
+          unit={u.unitLabel} spark={o.sparkGlucose.map(u.conv)} chip={<TrendChip delta={u.conv(o.stats.avgDelta)} invert />} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

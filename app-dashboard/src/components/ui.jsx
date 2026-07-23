@@ -97,13 +97,25 @@ export function TrendChip({ delta, unit = "", invert = false }) {
   );
 }
 
+/* Accent palette for colorful cards/icons */
+export const ACCENTS = {
+  teal: { bg: "bg-brand-faint", fg: "text-brand-dark", spark: "#0EA99A", bar: "from-brand-dark to-brand" },
+  sky: { bg: "bg-sky-100", fg: "text-sky-600", spark: "#0284C7", bar: "from-sky-600 to-sky-400" },
+  violet: { bg: "bg-violet-100", fg: "text-violet-600", spark: "#7C3AED", bar: "from-violet-600 to-violet-400" },
+  amber: { bg: "bg-amber-100", fg: "text-amber-600", spark: "#D97706", bar: "from-amber-500 to-amber-400" },
+  rose: { bg: "bg-rose-100", fg: "text-rose-600", spark: "#E11D48", bar: "from-rose-600 to-rose-400" },
+  indigo: { bg: "bg-indigo-100", fg: "text-indigo-600", spark: "#4F46E5", bar: "from-indigo-600 to-indigo-400" },
+};
+
 /* Stat card */
-export function StatCard({ icon: Icon, label, value, unit, decimals = 0, chip, spark, sparkColor, id, delay = 0 }) {
+export function StatCard({ icon: Icon, label, value, unit, decimals = 0, chip, spark, sparkColor, accent = "teal", note, id, delay = 0 }) {
+  const a = ACCENTS[accent] || ACCENTS.teal;
   return (
     <div style={{ animationDelay: `${delay}ms` }}
-      className="animate-fadeUp rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(10,91,98,0.12)]">
+      className="group animate-fadeUp relative overflow-hidden rounded-2xl bg-white p-5 shadow-card ring-1 ring-line/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_34px_rgba(10,91,98,0.14)]">
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${a.bar} opacity-80`} />
       <div className="flex items-center justify-between">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-faint text-brand-dark">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${a.bg} ${a.fg} transition-transform duration-300 group-hover:scale-110`}>
           <Icon size={18} strokeWidth={2.2} />
         </div>
         {chip}
@@ -115,7 +127,8 @@ export function StatCard({ icon: Icon, label, value, unit, decimals = 0, chip, s
         </span>
         {unit && <span className="text-sm font-semibold text-muted">{unit}</span>}
       </div>
-      {spark && <div className="mt-2 -mx-1"><Spark data={spark} color={sparkColor} id={id} /></div>}
+      {note && <div className="mt-0.5 text-[10px] font-medium text-muted">{note}</div>}
+      {spark && <div className="mt-2 -mx-1"><Spark data={spark} color={sparkColor || a.spark} id={id} /></div>}
     </div>
   );
 }

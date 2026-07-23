@@ -328,8 +328,28 @@ function buildOverview(r, patient) {
 
   const appts = upcomingAppointments(r.appointments, r.doctors).slice(0, 3);
 
+  // Low-glucose safety caution. GMI/eA1c is a statistical estimate and becomes
+  // misleading when readings run low, so surface a clear note + advice.
+  let caution = null;
+  const lowAvg = s.avg > 0 && s.avg < targetLow;
+  const currentLow = latest.value < targetLow;
+  const frequentLows = s.lowPct >= 10;
+  if (lowAvg || currentLow || frequentLows) {
+    caution = {
+      level: lowAvg || currentLow ? "danger" : "warn",
+      title: lowAvg ? "Your average glucose is below range"
+        : currentLow ? "Your latest reading is low"
+        : "Frequent low readings",
+      text: lowAvg
+        ? `Your average is ${s.avg} mg/dL — below your ${targetLow} mg/dL target. The estimated A1c is only a statistical estimate and is not reliable when glucose runs low. If your glucose keeps reading low, please seek medical advice.`
+        : currentLow
+        ? `Your latest reading (${latest.value} mg/dL) is below ${targetLow} mg/dL. Treat a low if you have symptoms. If lows continue, seek medical advice.`
+        : `About ${s.lowPct}% of recent readings are below your target range. The estimated A1c is only an estimate — frequent lows deserve attention, so consider discussing them with your care team.`,
+    };
+  }
+
   return {
-    stats, timeInRange, activity, meals, medications, medsTaken,
+    stats, timeInRange, activity, meals, medications, medsTaken, caution,
     glucoseToday: todaySeries,
     glucose14d: days14.length ? days14 : todaySeries.map((p) => ({ label: p.label, v: p.v })),
     sparkGlucose, insights: insights.slice(0, 3), appointments: appts,

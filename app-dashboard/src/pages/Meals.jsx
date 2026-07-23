@@ -6,6 +6,13 @@ import { dayKey, dateLabel, timeLabel, DAY, clampArr } from "../data/transform.j
 
 const MEAL_ORDER = ["Breakfast", "Lunch", "Dinner", "Snack"];
 const MEAL_ICON = { Breakfast: Coffee, Lunch: Sun, Dinner: Moon, Snack: Cookie };
+const MEAL_COLOR = {
+  Breakfast: "bg-amber-100 text-amber-600",
+  Lunch: "bg-sky-100 text-sky-600",
+  Dinner: "bg-violet-100 text-violet-600",
+  Snack: "bg-rose-100 text-rose-600",
+  Other: "bg-brand-faint text-brand-dark",
+};
 
 export default function Meals({ model }) {
   const food = clampArr(model.records.food).filter((f) => f && (f.name || f.carbs != null));
@@ -99,7 +106,7 @@ export default function Meals({ model }) {
                   return (
                     <div key={meal}>
                       <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-faint text-brand-dark"><Icon size={15} /></div>
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${MEAL_COLOR[meal] || MEAL_COLOR.Other}`}><Icon size={15} /></div>
                         <span className="text-sm font-bold text-ink">{meal}</span>
                         <span className="ml-auto text-xs font-semibold text-muted">{mc}g carbs</span>
                       </div>
