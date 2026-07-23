@@ -30,7 +30,7 @@ export function UnitProvider({ children }) {
     };
   }, [unit, setUnit, toggle]);
 
-  return <UnitCtx.Provider value={value}>{children}</UnitCtx.Provider>;
+  return React.createElement(UnitCtx.Provider, { value }, children);
 }
 
 export function useUnit() {
