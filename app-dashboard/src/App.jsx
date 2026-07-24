@@ -5,7 +5,7 @@ import {
   Activity, Stethoscope, Gauge, ChefHat, User, RefreshCw, Sun, Moon,
 } from "lucide-react";
 import { watchAuth, signInWithGoogle, signOut, fetchUserData } from "./lib/firebase.js";
-import { buildModel } from "./data/transform.js";
+import { buildModel, screeningStatus } from "./data/transform.js";
 import { useUnit } from "./lib/units.js";
 import Overview from "./pages/Overview.jsx";
 import GlucoseLog from "./pages/GlucoseLog.jsx";
@@ -100,9 +100,52 @@ function Shell({ model, user, error, onSignOut, reload, dark, setDark }) {
   const [route, setRoute] = useState("overview");
   const [drawer, setDrawer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [q, setQ] = useState("");
+  const [notifOpen, setNotifOpen] = useState(false);
   const u = useUnit();
   const p = model.patient;
-  const doRefresh = async () => { setRefreshing(true); try { await reload(); } finally { setRefreshing(false); } };
+
+  const doRefresh = async () => {
+    setRefreshing(true);
+    const start = Date.now();
+    try { await reload(); }
+    finally { const wait = 600 - (Date.now() - start); setTimeout(() => setRefreshing(false), wait > 0 ? wait : 0); }
+  };
+
+  // Global search index across the user's data + pages.
+  const searchIndex = useMemo(() => {
+    const r = model.records || {};
+    const idx = [];
+    NAV.forEach((n) => idx.push({ label: n.label, sub: "Page", tab: n.key }));
+    (r.food || []).forEach((f) => f?.name && idx.push({ label: f.name, sub: "Meal", tab: "meals" }));
+    (r.meds || []).forEach((m) => m?.name && idx.push({ label: m.name, sub: "Medication", tab: "meds" }));
+    (r.recipes || []).forEach((x) => x?.name && idx.push({ label: x.name, sub: "Recipe", tab: "recipes" }));
+    (r.doctors || []).forEach((d) => d?.name && idx.push({ label: d.name, sub: d.specialty || "Doctor", tab: "care" }));
+    (r.appointments || []).forEach((a) => a?.title && idx.push({ label: a.title, sub: "Appointment", tab: "care" }));
+    const seen = new Set(), uniq = [];
+    idx.forEach((it) => { const k = `${it.tab}|${it.label.toLowerCase()}`; if (!seen.has(k)) { seen.add(k); uniq.push(it); } });
+    return uniq;
+  }, [model]);
+
+  const results = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return [];
+    return searchIndex.filter((it) => it.label.toLowerCase().includes(s) || (it.sub || "").toLowerCase().includes(s)).slice(0, 8);
+  }, [q, searchIndex]);
+
+  // Notifications derived from the user's data.
+  const notifs = useMemo(() => {
+    const out = [];
+    const o = model.overview;
+    if (o?.caution) out.push({ tone: o.caution.level, title: o.caution.title, text: o.caution.text, tab: "overview" });
+    const due = (o?.medications || []).filter((m) => !m.taken).length;
+    if (due > 0) out.push({ tone: "warn", title: `${due} medication dose${due > 1 ? "s" : ""} due today`, text: "Review today's schedule.", tab: "meds" });
+    (o?.appointments || []).slice(0, 2).forEach((a) => out.push({ tone: "info", title: `Upcoming: ${a.title || "Appointment"}`, text: new Date(a.ts).toLocaleDateString(), tab: "care" }));
+    (model.records?.preventiveScreenings || []).forEach((s) => { if (screeningStatus(s).due) out.push({ tone: "warn", title: `Screening due: ${s.label}`, text: "", tab: "care" }); });
+    return out;
+  }, [model]);
+
+  const goSearch = (tab) => { setRoute(tab); setQ(""); };
   const active = NAV.find((n) => n.key === route) || NAV[0];
   const PageComp = active.Comp;
 
@@ -142,8 +185,20 @@ function Shell({ model, user, error, onSignOut, reload, dark, setDark }) {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative hidden sm:block">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input placeholder="Search…"
+              <input value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setQ(""), 150)}
+                placeholder="Search…"
                 className="w-44 rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 xl:w-56" />
+              {q.trim() && (
+                <div className="absolute right-0 z-30 mt-1 w-72 overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+                  {results.length ? results.map((it, i) => (
+                    <button key={i} onMouseDown={() => goSearch(it.tab)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-canvas">
+                      <span className="truncate font-semibold text-ink">{it.label}</span>
+                      <span className="ml-auto whitespace-nowrap text-[11px] text-muted">{it.sub}</span>
+                    </button>
+                  )) : <div className="px-3 py-3 text-xs text-muted">No matches.</div>}
+                </div>
+              )}
             </div>
             <button onClick={doRefresh} title="Refresh data"
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
@@ -157,10 +212,31 @@ function Shell({ model, user, error, onSignOut, reload, dark, setDark }) {
               className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-brand-dark transition hover:bg-brand-faint active:scale-95">
               {u.unitLabel}
             </button>
-            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
-              <Bell size={18} />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white" />
-            </button>
+            <div className="relative">
+              <button onClick={() => setNotifOpen((v) => !v)} title="Notifications"
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:text-brand-dark">
+                <Bell size={18} />
+                {notifs.length > 0 && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-danger ring-2 ring-surface" />}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 z-30 mt-1 w-72 overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+                    <div className="border-b border-line px-3 py-2 text-xs font-bold text-ink">Notifications</div>
+                    {notifs.length ? notifs.map((n, i) => {
+                      const c = n.tone === "danger" ? "text-danger" : n.tone === "warn" ? "text-warn" : "text-brand-dark";
+                      return (
+                        <button key={i} onClick={() => { setRoute(n.tab); setNotifOpen(false); }}
+                          className="block w-full border-b border-line/60 px-3 py-2.5 text-left transition last:border-0 hover:bg-canvas">
+                          <div className={`text-xs font-bold ${c}`}>{n.title}</div>
+                          {n.text && <div className="mt-0.5 text-[11px] leading-snug text-muted">{n.text}</div>}
+                        </button>
+                      );
+                    }) : <div className="px-3 py-5 text-center text-xs text-muted">You're all caught up ✓</div>}
+                  </div>
+                </>
+              )}
+            </div>
             <div className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3">
               {user?.photoURL
                 ? <img src={user.photoURL} alt="" className="h-8 w-8 rounded-lg object-cover" referrerPolicy="no-referrer" />
